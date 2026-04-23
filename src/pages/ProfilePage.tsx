@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { User } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { updateProfile } from '../services/profiles'
 import { Input, Select } from '../components/ui/Input'
 import Button from '../components/ui/Button'

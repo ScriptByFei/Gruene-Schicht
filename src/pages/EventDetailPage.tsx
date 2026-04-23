@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, MapPin, Calendar, MessageSquare } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { getEvent } from '../services/events'
 import { getPollsForEvent } from '../services/polls'
 import { getVotesForPoll, getUserVotesForPoll } from '../services/votes'
@@ -65,10 +65,16 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     const load = async () => {
-      if (!id) return navigate('/dashboard')
+      if (!id) {
+        navigate('/dashboard')
+        return
+      }
       try {
-        const [evt] = await Promise.all([getEvent(id)])
-        if (!evt) return navigate('/dashboard')
+        const evt = await getEvent(id)
+        if (!evt) {
+          navigate('/dashboard')
+          return
+        }
         setEvent(evt)
         await Promise.all([loadPolls(), loadAttendance(), loadSuggestions()])
       } catch {
@@ -77,8 +83,9 @@ export default function EventDetailPage() {
         setLoading(false)
       }
     }
-    load()
-  }, [id])
+
+    void load()
+  }, [id, loadAttendance, loadPolls, loadSuggestions, navigate])
 
   if (loading) return <PageSpinner />
   if (!event) return null
@@ -99,7 +106,7 @@ export default function EventDetailPage() {
         <div className="flex items-start gap-3 justify-between">
           <div>
             <div className="mb-2">
-              <EventStatusBadge status={event.status as any} />
+              <EventStatusBadge status={event.status} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
             {event.description && (

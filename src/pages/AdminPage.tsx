@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { Plus, ChevronDown, ChevronUp, Trash2, Lock, Unlock, X } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { getAllEvents, createEvent, updateEvent, setEventStatus } from '../services/events'
 import { getPollsForEvent, createPoll, togglePollOpen, deletePoll } from '../services/polls'
 import { getAttendanceForEvent, computeAttendanceSummary } from '../services/attendance'
@@ -40,7 +40,7 @@ export default function AdminPage() {
   // Final decision form
   const [finalForm, setFinalForm] = useState({ final_location: '', final_date: '', final_note: '' })
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const events = await getAllEvents()
     const withData = await Promise.all(
       events.map(async (event) => {
@@ -58,11 +58,27 @@ export default function AdminPage() {
       })
     )
     setEventsWithData(withData)
-  }
+  }, [])
 
   useEffect(() => {
-    loadData().finally(() => setLoading(false))
-  }, [])
+    let cancelled = false
+
+    const loadInitialData = async () => {
+      try {
+        await loadData()
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadInitialData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadData])
 
   const handleCreateEvent = async (e: FormEvent) => {
     e.preventDefault()
@@ -201,7 +217,7 @@ export default function AdminPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center flex-wrap gap-2 mb-1">
-                    <EventStatusBadge status={event.status as any} />
+                    <EventStatusBadge status={event.status} />
                     {pendingSuggestions > 0 && (
                       <Badge variant="yellow">{pendingSuggestions} offene Vorschläge</Badge>
                     )}

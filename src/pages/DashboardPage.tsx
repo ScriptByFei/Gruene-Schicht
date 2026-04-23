@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { getActiveEvents } from '../services/events'
 import { getAttendanceForEvent } from '../services/attendance'
 import EventCard from '../components/events/EventCard'

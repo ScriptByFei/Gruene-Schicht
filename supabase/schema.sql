@@ -63,7 +63,8 @@ CREATE TABLE events (
   final_location  TEXT,
   final_date      TEXT,
   final_note      TEXT,
-  created_by      UUID NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+  -- Keep historical events if the creator account gets deleted.
+  created_by      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -168,7 +169,10 @@ $$;
 
 -- PROFILES
 CREATE POLICY "profiles_read_own"    ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_update_own"  ON profiles FOR UPDATE USING (auth.uid() = id);
+-- Suggestions join against profiles(display_name, shift_group), so authenticated users
+-- need SELECT access to referenced profile rows.
+CREATE POLICY "profiles_read_authenticated" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "profiles_update_own"  ON profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 -- Admins can read all profiles
 CREATE POLICY "profiles_read_admin"  ON profiles FOR SELECT USING (is_admin());
 
@@ -176,15 +180,15 @@ CREATE POLICY "profiles_read_admin"  ON profiles FOR SELECT USING (is_admin());
 -- Everyone logged in can read active/closed events; admins see all
 CREATE POLICY "events_read_public"   ON events FOR SELECT
   USING (status IN ('active', 'closed') OR is_admin());
-CREATE POLICY "events_write_admin"   ON events FOR ALL USING (is_admin());
+CREATE POLICY "events_write_admin"   ON events FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 
 -- POLLS
 CREATE POLICY "polls_read"           ON polls FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "polls_write_admin"    ON polls FOR ALL USING (is_admin());
+CREATE POLICY "polls_write_admin"    ON polls FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 
 -- POLL OPTIONS
 CREATE POLICY "poll_options_read"    ON poll_options FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "poll_options_write"   ON poll_options FOR ALL USING (is_admin());
+CREATE POLICY "poll_options_write"   ON poll_options FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 
 -- VOTES
 -- Users can read all votes (for results), but only write/delete their own
@@ -195,14 +199,14 @@ CREATE POLICY "votes_delete_own"     ON votes FOR DELETE USING (auth.uid() = use
 -- EVENT ATTENDANCE
 CREATE POLICY "attendance_read"         ON event_attendance FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "attendance_insert_own"   ON event_attendance FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "attendance_update_own"   ON event_attendance FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "attendance_update_own"   ON event_attendance FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "attendance_delete_own"   ON event_attendance FOR DELETE USING (auth.uid() = user_id);
 
 -- SUGGESTIONS
 CREATE POLICY "suggestions_read"        ON suggestions FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "suggestions_insert_own"  ON suggestions FOR INSERT WITH CHECK (auth.uid() = user_id);
 -- Only admins can update status
-CREATE POLICY "suggestions_update_admin" ON suggestions FOR UPDATE USING (is_admin());
+CREATE POLICY "suggestions_update_admin" ON suggestions FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
 
 -- ============================================================
 -- INDEXES

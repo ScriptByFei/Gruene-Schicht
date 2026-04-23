@@ -2,16 +2,16 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, MapPin, Calendar } from 'lucide-react'
 import { Card } from '../ui/Card'
 import EventStatusBadge from './EventStatusBadge'
-import type { Event, EventAttendance } from '../../types'
+import type { Event, EventAttendance, AttendanceStatus } from '../../types'
 import { cn } from '../../lib/cn'
 
-const attendanceLabels: Record<string, string> = {
+const attendanceLabels: Record<AttendanceStatus, string> = {
   attending: 'Ich bin dabei',
   maybe: 'Vielleicht',
   declined: 'Abgesagt',
 }
 
-const attendanceColors: Record<string, string> = {
+const attendanceColors: Record<AttendanceStatus, string> = {
   attending: 'text-emerald-700 bg-emerald-50',
   maybe: 'text-amber-700 bg-amber-50',
   declined: 'text-red-700 bg-red-50',
@@ -29,7 +29,7 @@ export default function EventCard({ event, attendance }: EventCardProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <EventStatusBadge status={event.status as any} />
+              <EventStatusBadge status={event.status} />
               {attendance && (
                 <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', attendanceColors[attendance.status])}>
                   {attendanceLabels[attendance.status]}
