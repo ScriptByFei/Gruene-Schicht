@@ -1,7 +1,5 @@
 export type UserRole = 'employee' | 'admin'
 
-export type ShiftGroup = 'Früh' | 'Spät' | 'Nacht' | 'Tagschicht' | 'Sonstige'
-
 export type EventStatus = 'draft' | 'active' | 'closed'
 
 export type PollType = 'single_choice' | 'multiple_choice'
@@ -14,8 +12,7 @@ export interface Profile {
   id: string
   name: string
   display_name: string
-  department: string
-  shift_group: ShiftGroup
+  shift_start_date: string | null
   role: UserRole
   created_at: string
 }
@@ -74,7 +71,7 @@ export interface Suggestion {
   text: string
   status: SuggestionStatus
   created_at: string
-  profile?: Pick<Profile, 'display_name' | 'shift_group'>
+  profile?: Pick<Profile, 'display_name' | 'shift_start_date'>
 }
 
 export interface PollResult {

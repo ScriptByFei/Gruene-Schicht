@@ -2,29 +2,27 @@ import { useState, type FormEvent } from 'react'
 import { User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { updateProfile } from '../services/profiles'
-import { Input, Select } from '../components/ui/Input'
+import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
-import type { ShiftGroup } from '../types'
-
-const shiftGroups: ShiftGroup[] = ['Früh', 'Spät', 'Nacht', 'Tagschicht', 'Sonstige']
+import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
 
 export default function ProfilePage() {
   const { profile, user, refreshProfile } = useAuth()
+  const currentShift = getCurrentShift(profile?.shift_start_date)
 
   const [form, setForm] = useState({
     name: profile?.name ?? '',
     display_name: profile?.display_name ?? '',
-    department: profile?.department ?? '',
-    shift_group: (profile?.shift_group ?? 'Tagschicht') as ShiftGroup,
+    shift_start_date: profile?.shift_start_date ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
   const set = (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handleSubmit = async (e: FormEvent) => {
@@ -34,7 +32,10 @@ export default function ProfilePage() {
     setError('')
     setSuccess(false)
     try {
-      await updateProfile(user.id, form)
+      await updateProfile(user.id, {
+        ...form,
+        shift_start_date: form.shift_start_date || null,
+      })
       await refreshProfile()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -53,9 +54,10 @@ export default function ProfilePage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">{profile?.display_name ?? 'Mein Profil'}</h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-gray-500">{user?.email}</span>
             {profile?.role === 'admin' && <Badge variant="purple">Admin</Badge>}
+            {currentShift && <Badge variant="green">Heute: {currentShift}</Badge>}
           </div>
         </div>
       </div>
@@ -78,15 +80,17 @@ export default function ProfilePage() {
           />
           <Input
             label="Abteilung"
-            value={form.department}
-            onChange={set('department')}
-            required
+            value="Grüne Schicht"
+            readOnly
+            className="bg-gray-50 text-gray-600"
           />
-          <Select
-            label="Schichtgruppe"
-            value={form.shift_group}
-            onChange={set('shift_group')}
-            options={shiftGroups.map((s) => ({ value: s, label: s }))}
+          <Input
+            label="Startdatum deines Schichtzyklus"
+            type="date"
+            value={form.shift_start_date}
+            onChange={set('shift_start_date')}
+            required
+            hint={`Aktuell gespeichert: ${formatShiftStartDate(profile?.shift_start_date)}. Die heutige Schicht wird automatisch aus SSSNN-----FFFNNNN----FFFSSS- berechnet.`}
           />
 
           {success && (

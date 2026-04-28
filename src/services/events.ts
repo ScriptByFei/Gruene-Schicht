@@ -63,3 +63,8 @@ export async function setEventStatus(id: string, status: EventStatus): Promise<v
     .eq('id', id)
   if (error) throw error
 }
+
+export async function deleteEvent(id: string): Promise<void> {
+  const { error } = await supabase.from('events').delete().eq('id', id)
+  if (error) throw error
+}

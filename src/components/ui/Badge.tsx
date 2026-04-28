@@ -17,7 +17,7 @@ interface BadgeProps {
 
 export default function Badge({ children, variant = 'gray', className }: BadgeProps) {
   return (
-    <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', variants[variant], className)}>
+    <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-medium leading-none', variants[variant], className)}>
       {children}
     </span>
   )

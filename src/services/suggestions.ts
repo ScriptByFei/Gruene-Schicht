@@ -1,14 +1,37 @@
 import { supabase } from '../lib/supabase'
 import type { Suggestion, SuggestionStatus } from '../types'
 
+async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> {
+  const userIds = Array.from(new Set(suggestions.map((s) => s.user_id)))
+  if (userIds.length === 0) return suggestions
+
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id, display_name, shift_start_date')
+    .in('id', userIds)
+  if (error) throw error
+
+  const profilesById = new Map<string, Suggestion['profile']>(
+    (profiles ?? []).map((profile) => [profile.id, {
+      display_name: profile.display_name,
+      shift_start_date: profile.shift_start_date,
+    } as Suggestion['profile']])
+  )
+
+  return suggestions.map((suggestion) => ({
+    ...suggestion,
+    profile: profilesById.get(suggestion.user_id),
+  }))
+}
+
 export async function getSuggestionsForEvent(eventId: string): Promise<Suggestion[]> {
   const { data, error } = await supabase
     .from('suggestions')
-    .select('*, profile:profiles(display_name, shift_group)')
+    .select('*')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as Suggestion[]
+  return attachProfiles((data ?? []) as Suggestion[])
 }
 
 export async function createSuggestion(
@@ -39,9 +62,9 @@ export async function updateSuggestionStatus(
 export async function getAllPendingSuggestions(): Promise<Suggestion[]> {
   const { data, error } = await supabase
     .from('suggestions')
-    .select('*, profile:profiles(display_name, shift_group)')
+    .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as Suggestion[]
+  return attachProfiles((data ?? []) as Suggestion[])
 }

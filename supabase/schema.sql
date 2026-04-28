@@ -10,7 +10,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================
 
 CREATE TYPE user_role AS ENUM ('employee', 'admin');
-CREATE TYPE shift_group AS ENUM ('Früh', 'Spät', 'Nacht', 'Tagschicht', 'Sonstige');
 CREATE TYPE event_status AS ENUM ('draft', 'active', 'closed');
 CREATE TYPE poll_type AS ENUM ('single_choice', 'multiple_choice');
 CREATE TYPE attendance_status AS ENUM ('attending', 'maybe', 'declined');
@@ -24,8 +23,7 @@ CREATE TABLE profiles (
   id            UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   display_name  TEXT NOT NULL,
-  department    TEXT NOT NULL DEFAULT '',
-  shift_group   shift_group NOT NULL DEFAULT 'Tagschicht',
+  shift_start_date TEXT DEFAULT NULL,
   role          user_role NOT NULL DEFAULT 'employee',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -34,13 +32,12 @@ CREATE TABLE profiles (
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  INSERT INTO profiles (id, name, display_name, department, shift_group, role)
+  INSERT INTO profiles (id, name, display_name, shift_start_date, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', ''),
     COALESCE(NEW.raw_user_meta_data->>'display_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'department', ''),
-    COALESCE((NEW.raw_user_meta_data->>'shift_group')::shift_group, 'Tagschicht'),
+    NULLIF(NEW.raw_user_meta_data->>'shift_start_date', ''),
     'employee'
   );
   RETURN NEW;
@@ -169,7 +166,7 @@ $$;
 
 -- PROFILES
 CREATE POLICY "profiles_read_own"    ON profiles FOR SELECT USING (auth.uid() = id);
--- Suggestions join against profiles(display_name, shift_group), so authenticated users
+-- Suggestions show profile display names/current shift, so authenticated users
 -- need SELECT access to referenced profile rows.
 CREATE POLICY "profiles_read_authenticated" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "profiles_update_own"  ON profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);

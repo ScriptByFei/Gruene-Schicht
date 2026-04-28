@@ -6,6 +6,7 @@ import { getAttendanceForEvent } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
+import { getCurrentShift } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 
 export default function DashboardPage() {
@@ -44,17 +45,19 @@ export default function DashboardPage() {
   const activeEvents = events.filter((e) => e.status === 'active')
   const closedEvents = events.filter((e) => e.status === 'closed')
 
+  const currentShift = getCurrentShift(profile?.shift_start_date)
+
   if (loading) return <PageSpinner />
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">
+      <div className="mb-7">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
           Hallo, {profile?.display_name ?? 'Willkommen'} 👋
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {profile?.department && `${profile.department} · `}
-          {profile?.shift_group && `Schicht: ${profile.shift_group}`}
+        <p className="mt-1.5 text-sm text-gray-600">
+          Grüne Schicht
+          {currentShift && ` · Heute: ${currentShift}`}
         </p>
       </div>
 
@@ -64,9 +67,16 @@ export default function DashboardPage() {
 
       {/* Active Events */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
-          Aktive Events
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+            Aktive Events
+          </h2>
+          {activeEvents.length > 0 && (
+            <span className="text-xs font-medium text-gray-500">
+              {activeEvents.length} aktiv
+            </span>
+          )}
+        </div>
         {activeEvents.length === 0 ? (
           <EmptyState
             icon={<CalendarDays className="w-10 h-10" />}

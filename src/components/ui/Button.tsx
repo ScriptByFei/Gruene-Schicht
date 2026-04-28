@@ -23,12 +23,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, fullWidth, className, children, disabled, ...props }, ref) => (
+  ({ variant = 'primary', size = 'md', type = 'button', loading, fullWidth, className, children, disabled, ...props }, ref) => (
     <button
       ref={ref}
+      type={type}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed',
+        'scroll-mb-24 inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
         fullWidth && 'w-full',

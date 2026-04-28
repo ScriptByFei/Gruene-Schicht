@@ -8,8 +8,7 @@ export type Database = {
           id: string
           name: string
           display_name: string
-          department: string
-          shift_group: string
+          shift_start_date: string | null
           role: string
           created_at: string
         }
@@ -17,8 +16,7 @@ export type Database = {
           id: string
           name: string
           display_name: string
-          department: string
-          shift_group?: string
+          shift_start_date?: string | null
           role?: string
           created_at?: string
         }
@@ -26,8 +24,7 @@ export type Database = {
           id?: string
           name?: string
           display_name?: string
-          department?: string
-          shift_group?: string
+          shift_start_date?: string | null
           role?: string
           created_at?: string
         }

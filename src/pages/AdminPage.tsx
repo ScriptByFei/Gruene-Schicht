@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
-import { Plus, ChevronDown, ChevronUp, Trash2, Lock, Unlock, X } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, Trash2, Lock, Unlock, X, Pencil } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
-import { getAllEvents, createEvent, updateEvent, setEventStatus } from '../services/events'
+import { getAllEvents, createEvent, updateEvent, setEventStatus, deleteEvent } from '../services/events'
 import { getPollsForEvent, createPoll, togglePollOpen, deletePoll } from '../services/polls'
 import { getAttendanceForEvent, computeAttendanceSummary } from '../services/attendance'
 import { getSuggestionsForEvent, updateSuggestionStatus } from '../services/suggestions'
@@ -13,6 +13,7 @@ import EventStatusBadge from '../components/events/EventStatusBadge'
 import { PageSpinner } from '../components/ui/Spinner'
 import type { Event, EventStatus, Poll, AttendanceSummary, Suggestion, PollType } from '../types'
 import { cn } from '../lib/cn'
+import { getCurrentShift } from '../lib/shifts'
 
 interface EventWithData {
   event: Event
@@ -29,10 +30,14 @@ export default function AdminPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [showPollForm, setShowPollForm] = useState<string | null>(null) // eventId
   const [showFinalForm, setShowFinalForm] = useState<string | null>(null)
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   // New Event form
   const [newEvent, setNewEvent] = useState({ title: '', description: '', status: 'draft' as EventStatus })
+
+  // Edit Event form
+  const [editEvent, setEditEvent] = useState({ title: '', description: '', status: 'draft' as EventStatus })
 
   // New Poll form
   const [newPoll, setNewPoll] = useState({ title: '', description: '', type: 'single_choice' as PollType, optionsText: '' })
@@ -102,6 +107,36 @@ export default function AdminPage() {
     }
   }
 
+  const startEditingEvent = (event: Event) => {
+    setEditEvent({ title: event.title, description: event.description, status: event.status })
+    setEditingEventId(event.id)
+  }
+
+  const handleSaveEvent = async (e: FormEvent, eventId: string) => {
+    e.preventDefault()
+    try {
+      await updateEvent(eventId, editEvent)
+      setEditingEventId(null)
+      await loadData()
+    } catch {
+      setError('Event konnte nicht gespeichert werden.')
+    }
+  }
+
+  const handleDeleteEvent = async (event: Event) => {
+    const confirmed = window.confirm(`Event "${event.title}" wirklich löschen? Umfragen, Stimmen, Teilnahmen und Vorschläge werden ebenfalls gelöscht.`)
+    if (!confirmed) return
+
+    try {
+      await deleteEvent(event.id)
+      setExpandedEventId((current) => (current === event.id ? null : current))
+      setEditingEventId((current) => (current === event.id ? null : current))
+      await loadData()
+    } catch {
+      setError('Event konnte nicht gelöscht werden.')
+    }
+  }
+
   const handleCreatePoll = async (e: FormEvent, eventId: string) => {
     e.preventDefault()
     const labels = newPoll.optionsText
@@ -144,14 +179,14 @@ export default function AdminPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Admin-Bereich</h1>
-          <p className="mt-1 text-sm text-gray-500">Events und Umfragen verwalten</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Admin-Bereich</h1>
+          <p className="mt-1 text-sm text-gray-600">Events und Umfragen verwalten</p>
         </div>
-        <Button onClick={() => setShowCreateEvent(true)} size="sm">
+        <Button onClick={() => setShowCreateEvent(true)} size="sm" className="shrink-0 whitespace-nowrap">
           <Plus className="w-4 h-4" />
-          Neues Event
+          Event erstellen
         </Button>
       </div>
 
@@ -223,7 +258,7 @@ export default function AdminPage() {
                     )}
                   </div>
                   <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                  <div className="mt-2 flex gap-4 text-xs text-gray-500">
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500 sm:flex sm:flex-wrap sm:gap-4">
                     <span>{polls.length} Umfrage{polls.length !== 1 ? 'n' : ''}</span>
                     <span className="text-emerald-600">{attendance.attending} dabei</span>
                     <span className="text-amber-600">{attendance.maybe} vielleicht</span>
@@ -231,13 +266,80 @@ export default function AdminPage() {
                   </div>
                 </div>
                 {isExpanded
-                  ? <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" />
-                  : <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />
+                  ? <ChevronUp className="w-5 h-5 text-gray-500 shrink-0 mt-1" />
+                  : <ChevronDown className="w-5 h-5 text-gray-500 shrink-0 mt-1" />
                 }
               </div>
 
               {isExpanded && (
                 <div className="border-t border-gray-100 p-5 flex flex-col gap-5">
+                  {/* Event edit/delete actions */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <p className="text-xs font-medium text-gray-500">Event verwalten</p>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (editingEventId === event.id) {
+                              setEditingEventId(null)
+                            } else {
+                              startEditingEvent(event)
+                            }
+                          }}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          {editingEventId === event.id ? 'Abbrechen' : 'Event bearbeiten'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => handleDeleteEvent(event)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Event löschen
+                        </Button>
+                      </div>
+                    </div>
+
+                    {editingEventId === event.id && (
+                      <Card className="bg-gray-50">
+                        <form onSubmit={(e) => handleSaveEvent(e, event.id)} className="flex flex-col gap-3">
+                          <Input
+                            label="Titel"
+                            value={editEvent.title}
+                            onChange={(e) => setEditEvent((p) => ({ ...p, title: e.target.value }))}
+                            required
+                            autoFocus
+                          />
+                          <Textarea
+                            label="Beschreibung"
+                            value={editEvent.description}
+                            onChange={(e) => setEditEvent((p) => ({ ...p, description: e.target.value }))}
+                          />
+                          <Select
+                            label="Status"
+                            value={editEvent.status}
+                            onChange={(e) => setEditEvent((p) => ({ ...p, status: e.target.value as EventStatus }))}
+                            options={[
+                              { value: 'draft', label: 'Entwurf' },
+                              { value: 'active', label: 'Aktiv' },
+                              { value: 'closed', label: 'Abgeschlossen' },
+                            ]}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button type="button" variant="secondary" size="sm" onClick={() => setEditingEventId(null)}>
+                              Abbrechen
+                            </Button>
+                            <Button type="submit" size="sm">Speichern</Button>
+                          </div>
+                        </form>
+                      </Card>
+                    )}
+                  </div>
+
                   {/* Status actions */}
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-2">Status ändern</p>
@@ -364,11 +466,12 @@ export default function AdminPage() {
                             <div className="flex-1">
                               <p className="text-gray-800">{s.text}</p>
                               <p className="text-xs text-gray-400 mt-0.5">
-                                {s.profile?.display_name} · {s.profile?.shift_group}
+                                {s.profile?.display_name}
+                                {s.profile?.shift_start_date && ` · ${getCurrentShift(s.profile.shift_start_date) ?? 'Schicht offen'}`}
                               </p>
                             </div>
                             {s.status === 'pending' && (
-                              <div className="flex gap-1">
+                              <div className="flex flex-col sm:flex-row gap-1">
                                 <Button
                                   size="sm"
                                   variant="outline"

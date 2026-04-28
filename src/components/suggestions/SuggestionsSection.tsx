@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Clock, XCircle, Plus, Send } from 'lucide-react'
 import { Card, CardHeader } from '../ui/Card'
 import { Textarea } from '../ui/Input'
 import Button from '../ui/Button'
 import { cn } from '../../lib/cn'
+import { getCurrentShift } from '../../lib/shifts'
 import type { Suggestion, SuggestionStatus } from '../../types'
 import { createSuggestion, updateSuggestionStatus } from '../../services/suggestions'
 
@@ -34,6 +35,14 @@ export default function SuggestionsSection({
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showForm) return
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+  }, [showForm])
 
   const handleSubmit = async () => {
     if (!text.trim()) return
@@ -76,7 +85,7 @@ export default function SuggestionsSection({
       />
 
       {showForm && (
-        <div className="mt-4 flex flex-col gap-2">
+        <div ref={formRef} className="mt-4 flex flex-col gap-2 scroll-mb-24">
           <Textarea
             placeholder="Dein Vorschlag z.B. 'Restaurant Zur Eiche am 14. März'"
             value={text}
@@ -119,7 +128,8 @@ export default function SuggestionsSection({
                 <p className="text-sm text-gray-800">{s.text}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-gray-400">
-                    {s.profile?.display_name ?? 'Anonym'} · {s.profile?.shift_group}
+                    {s.profile?.display_name ?? 'Anonym'}
+                    {s.profile?.shift_start_date && ` · ${getCurrentShift(s.profile.shift_start_date) ?? 'Schicht offen'}`}
                   </span>
                   <span className={cn('text-xs font-medium', color)}>{label}</span>
                 </div>

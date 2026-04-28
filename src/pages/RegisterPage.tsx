@@ -2,11 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { Input, Select } from '../components/ui/Input'
+import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
-import type { ShiftGroup } from '../types'
-
-const shiftGroups: ShiftGroup[] = ['Früh', 'Spät', 'Nacht', 'Tagschicht', 'Sonstige']
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -14,15 +11,14 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     name: '',
     display_name: '',
-    department: '',
-    shift_group: 'Tagschicht' as ShiftGroup,
+    shift_start_date: '',
     email: '',
     password: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handleSubmit = async (e: FormEvent) => {
@@ -42,8 +38,7 @@ export default function RegisterPage() {
         data: {
           name: form.name,
           display_name: form.display_name,
-          department: form.department,
-          shift_group: form.shift_group,
+          shift_start_date: form.shift_start_date || null,
         },
       },
     })
@@ -90,16 +85,17 @@ export default function RegisterPage() {
             />
             <Input
               label="Abteilung"
-              value={form.department}
-              onChange={set('department')}
-              placeholder="z.B. Produktion"
-              required
+              value="Grüne Schicht"
+              readOnly
+              className="bg-gray-50 text-gray-600"
             />
-            <Select
-              label="Schichtgruppe"
-              value={form.shift_group}
-              onChange={set('shift_group')}
-              options={shiftGroups.map((s) => ({ value: s, label: s }))}
+            <Input
+              label="Startdatum deines Schichtzyklus"
+              type="date"
+              value={form.shift_start_date}
+              onChange={set('shift_start_date')}
+              required
+              hint="Datum, an dem dein persönlicher SSSNN-----FFFNNNN----FFFSSS- Zyklus beginnt."
             />
             <Input
               label="E-Mail"

@@ -5,6 +5,7 @@ import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
+import CalendarPage from './pages/CalendarPage'
 import EventDetailPage from './pages/EventDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
@@ -25,6 +26,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <DashboardPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CalendarPage />
                 </AppLayout>
               </ProtectedRoute>
             }
