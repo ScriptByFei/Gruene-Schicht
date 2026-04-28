@@ -364,7 +364,7 @@ export default function AdminPage() {
                             <div className="flex-1">
                               <p className="text-gray-800">{s.text}</p>
                               <p className="text-xs text-gray-400 mt-0.5">
-                                {s.profile?.display_name} · {s.profile?.shift_group}
+                                {s.profile?.display_name}
                               </p>
                             </div>
                             {s.status === 'pending' && (

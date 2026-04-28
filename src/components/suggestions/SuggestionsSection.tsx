@@ -119,7 +119,7 @@ export default function SuggestionsSection({
                 <p className="text-sm text-gray-800">{s.text}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-gray-400">
-                    {s.profile?.display_name ?? 'Anonym'} · {s.profile?.shift_group}
+                    {s.profile?.display_name ?? 'Anonym'}
                   </span>
                   <span className={cn('text-xs font-medium', color)}>{label}</span>
                 </div>

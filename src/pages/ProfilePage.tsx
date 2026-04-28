@@ -2,13 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { updateProfile } from '../services/profiles'
-import { Input, Select } from '../components/ui/Input'
+import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
-import type { ShiftGroup } from '../types'
+import { SHIFT_PATTERN, SHIFT_LABELS, SHIFT_COLORS, getTodayShift, getWeekOverview } from '../lib/shifts'
 
-const shiftGroups: ShiftGroup[] = ['Früh', 'Spät', 'Nacht', 'Tagschicht', 'Sonstige']
+const DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
 export default function ProfilePage() {
   const { profile, user, refreshProfile } = useAuth()
@@ -16,16 +16,18 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     name: profile?.name ?? '',
     display_name: profile?.display_name ?? '',
-    department: profile?.department ?? '',
-    shift_group: (profile?.shift_group ?? 'Tagschicht') as ShiftGroup,
+    shift_start_date: profile?.shift_start_date ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
   const set = (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }))
+
+  const todayShift = form.shift_start_date ? getTodayShift(form.shift_start_date) : null
+  const weekOverview = form.shift_start_date ? getWeekOverview(form.shift_start_date) : []
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -34,7 +36,11 @@ export default function ProfilePage() {
     setError('')
     setSuccess(false)
     try {
-      await updateProfile(user.id, form)
+      await updateProfile(user.id, {
+        name: form.name,
+        display_name: form.display_name,
+        shift_start_date: form.shift_start_date || null,
+      })
       await refreshProfile()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -60,6 +66,34 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Today's shift */}
+      {todayShift && (
+        <Card className="mb-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Heute</p>
+              <p className="text-lg font-semibold text-gray-900">{SHIFT_LABELS[todayShift]}</p>
+            </div>
+            <span className={`text-2xl font-bold px-4 py-2 rounded-xl ${SHIFT_COLORS[todayShift]}`}>
+              {todayShift === '-' ? 'Frei' : todayShift}
+            </span>
+          </div>
+
+          {weekOverview.length > 0 && (
+            <div className="mt-4 grid grid-cols-7 gap-1">
+              {weekOverview.map(({ date, shift }, i) => (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-gray-400">{DAY_NAMES[date.getDay() === 0 ? 6 : date.getDay() - 1]}</span>
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${i === 0 ? SHIFT_COLORS[shift] : 'bg-gray-50 text-gray-600'}`}>
+                    {shift}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       <Card>
         <CardHeader title="Profil bearbeiten" />
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
@@ -74,20 +108,21 @@ export default function ProfilePage() {
             value={form.display_name}
             onChange={set('display_name')}
             required
-            hint="Wird in der App und in Kommentaren angezeigt"
+            hint="Wird in der App angezeigt"
           />
-          <Input
-            label="Abteilung"
-            value={form.department}
-            onChange={set('department')}
-            required
-          />
-          <Select
-            label="Schichtgruppe"
-            value={form.shift_group}
-            onChange={set('shift_group')}
-            options={shiftGroups.map((s) => ({ value: s, label: s }))}
-          />
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700">
+              Beginn der Schichtfolge
+            </label>
+            <input
+              type="date"
+              value={form.shift_start_date}
+              onChange={set('shift_start_date')}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            <p className="text-xs text-gray-400 font-mono">{SHIFT_PATTERN}</p>
+          </div>
 
           {success && (
             <p className="text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg">

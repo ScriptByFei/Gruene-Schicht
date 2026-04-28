@@ -6,6 +6,7 @@ import { getAttendanceForEvent } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
+import { getTodayShift, SHIFT_LABELS, SHIFT_COLORS } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 
 export default function DashboardPage() {
@@ -41,6 +42,10 @@ export default function DashboardPage() {
     load()
   }, [user])
 
+  const todayShift = profile?.shift_start_date
+    ? getTodayShift(profile.shift_start_date)
+    : null
+
   const activeEvents = events.filter((e) => e.status === 'active')
   const closedEvents = events.filter((e) => e.status === 'closed')
 
@@ -48,14 +53,25 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">
-          Hallo, {profile?.display_name ?? 'Willkommen'} 👋
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {profile?.department && `${profile.department} · `}
-          {profile?.shift_group && `Schicht: ${profile.shift_group}`}
-        </p>
+      {/* Header with today's shift */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">
+            Hallo, {profile?.display_name ?? 'Willkommen'} 👋
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">Grüne Schicht</p>
+        </div>
+        {todayShift ? (
+          <div className={`shrink-0 flex flex-col items-center px-4 py-2 rounded-xl ${SHIFT_COLORS[todayShift]}`}>
+            <span className="text-xs font-medium opacity-70">Heute</span>
+            <span className="text-lg font-bold">{todayShift === '-' ? 'Frei' : todayShift}</span>
+            <span className="text-xs font-medium">{SHIFT_LABELS[todayShift]}</span>
+          </div>
+        ) : (
+          <div className="shrink-0 text-xs text-gray-400 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl text-center">
+            Schichtfolge<br />noch nicht gesetzt
+          </div>
+        )}
       </div>
 
       {error && (
