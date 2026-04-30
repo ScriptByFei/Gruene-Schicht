@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { Input } from '../components/ui/Input'
+import { Input, Select } from '../components/ui/Input'
 import Button from '../components/ui/Button'
+import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, getShiftTeamLabel } from '../lib/shifts'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -83,20 +84,18 @@ export default function RegisterPage() {
               required
               hint="Wird im System angezeigt"
             />
-            <Input
-              label="Abteilung"
-              value="Grüne Schicht"
-              readOnly
-              className="bg-gray-50 text-gray-600"
-            />
-            <Input
-              label="Startdatum deines Schichtzyklus"
-              type="date"
+            <Select
+              label="Schicht"
               value={form.shift_start_date}
-              onChange={set('shift_start_date')}
+              onChange={(e) => setForm((prev) => ({ ...prev, shift_start_date: e.target.value }))}
+              options={SHIFT_TEAM_OPTIONS}
               required
-              hint="Datum, an dem dein persönlicher SSSNN-----FFFNNNN----FFFSSS- Zyklus beginnt."
             />
+            <p className="-mt-2 text-xs text-gray-500">
+              {form.shift_start_date
+                ? `${getShiftTeamLabel(form.shift_start_date)} · Rhythmus: ${SHIFT_PATTERN}`
+                : 'Wähle Rot, Gelb, Blau oder Grün. Das Startdatum wird automatisch gesetzt.'}
+            </p>
             <Input
               label="E-Mail"
               type="email"

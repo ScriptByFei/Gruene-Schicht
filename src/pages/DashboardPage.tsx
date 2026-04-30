@@ -6,7 +6,7 @@ import { getAttendanceForEvent } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
-import { getCurrentShift } from '../lib/shifts'
+import { getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 
 export default function DashboardPage() {
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           Hallo, {profile?.display_name ?? 'Willkommen'} 👋
         </h1>
         <p className="mt-1.5 text-sm text-gray-600">
-          Grüne Schicht
+          {getShiftTeamLabel(profile?.shift_start_date)}
           {currentShift && ` · Heute: ${currentShift}`}
         </p>
       </div>

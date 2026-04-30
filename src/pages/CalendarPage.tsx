@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/useAuth'
 import { Card } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import { cn } from '../lib/cn'
-import { SHIFT_PATTERN, getShiftInfoForDate, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
+import { SHIFT_PATTERN, getShiftInfoForDate, getShiftTeamLabel, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -136,7 +136,7 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-sm font-medium text-emerald-700">Grüne Schicht</p>
+        <p className="text-sm font-medium text-emerald-700">{getShiftTeamLabel(profile.shift_start_date)}</p>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Schichtkalender</h1>
         <p className="mt-1 text-sm text-gray-600">
           Dein Dienstplan wird automatisch aus dem {SHIFT_PATTERN}-Rhythmus berechnet.

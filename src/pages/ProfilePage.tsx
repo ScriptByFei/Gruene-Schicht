@@ -2,11 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { updateProfile } from '../services/profiles'
-import { Input } from '../components/ui/Input'
+import { Input, Select } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
-import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
+import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, formatShiftStartDate, getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
 
 export default function ProfilePage() {
   const { profile, user, refreshProfile } = useAuth()
@@ -78,20 +78,17 @@ export default function ProfilePage() {
             required
             hint="Wird in der App und in Kommentaren angezeigt"
           />
-          <Input
-            label="Abteilung"
-            value="Grüne Schicht"
-            readOnly
-            className="bg-gray-50 text-gray-600"
-          />
-          <Input
-            label="Startdatum deines Schichtzyklus"
-            type="date"
+          <Select
+            label="Schicht"
             value={form.shift_start_date}
-            onChange={set('shift_start_date')}
+            onChange={(e) => setForm((prev) => ({ ...prev, shift_start_date: e.target.value }))}
+            options={SHIFT_TEAM_OPTIONS}
             required
-            hint={`Aktuell gespeichert: ${formatShiftStartDate(profile?.shift_start_date)}. Die heutige Schicht wird automatisch aus SSSNN-----FFFNNNN----FFFSSS- berechnet.`}
           />
+          <p className="-mt-2 text-xs text-gray-500">
+            Aktuell gespeichert: {getShiftTeamLabel(profile?.shift_start_date)} · {formatShiftStartDate(profile?.shift_start_date)}.
+            {' '}Rhythmus: {SHIFT_PATTERN}
+          </p>
 
           {success && (
             <p className="text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg">
