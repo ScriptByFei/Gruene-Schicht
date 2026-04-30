@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
+import { useTheme } from '../contexts/useTheme'
 import { updateProfile } from '../services/profiles'
 import { Input, Select } from '../components/ui/Input'
 import Button from '../components/ui/Button'
@@ -10,6 +11,7 @@ import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, formatShiftStartDate, getCurrentShif
 
 export default function ProfilePage() {
   const { profile, user, refreshProfile } = useAuth()
+  const { theme, setTheme } = useTheme()
   const currentShift = getCurrentShift(profile?.shift_start_date)
 
   const [form, setForm] = useState({
@@ -103,6 +105,26 @@ export default function ProfilePage() {
             Speichern
           </Button>
         </form>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader title="Darstellung" subtitle="Wähle zwischen normalem Modus und Dark Mode." />
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Button
+            variant={theme === 'light' ? 'primary' : 'secondary'}
+            onClick={() => setTheme('light')}
+            fullWidth
+          >
+            Normal
+          </Button>
+          <Button
+            variant={theme === 'dark' ? 'primary' : 'secondary'}
+            onClick={() => setTheme('dark')}
+            fullWidth
+          >
+            Dark Mode
+          </Button>
+        </div>
       </Card>
     </div>
   )

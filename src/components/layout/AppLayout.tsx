@@ -3,6 +3,7 @@ import { CalendarDays, LayoutDashboard, LogOut, Settings, User } from 'lucide-re
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/useAuth'
 import { cn } from '../../lib/cn'
+import ThemeToggle from '../ui/ThemeToggle'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,11 +26,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const items = isAdmin ? [...navItems, ...adminNavItems] : navItems
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col transition-colors">
       {/* Top Nav */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-30 transition-colors">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link to="/dashboard" className="flex items-center gap-2.5 font-semibold text-gray-900">
+          <Link to="/dashboard" className="flex items-center gap-2.5 font-semibold text-gray-900 dark:text-white">
             <CalendarDays className="w-5 h-5 text-emerald-600" />
             <span className="text-sm tracking-wide">Grüne Schicht</span>
           </Link>
@@ -56,6 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-1.5">
+            <ThemeToggle showLabel={false} />
             <Link
               to="/profile"
               aria-label="Profil öffnen"
@@ -77,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Mobile Bottom Nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 z-30">
         <div className={cn('grid h-16', isAdmin ? 'grid-cols-4' : 'grid-cols-3')}>
           {[
             { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },

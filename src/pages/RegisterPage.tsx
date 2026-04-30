@@ -4,6 +4,7 @@ import { CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Input, Select } from '../components/ui/Input'
 import Button from '../components/ui/Button'
+import ThemeToggle from '../components/ui/ThemeToggle'
 import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, getShiftTeamLabel } from '../lib/shifts'
 
 export default function RegisterPage() {
@@ -54,7 +55,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center px-4 py-8 transition-colors">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mb-4">

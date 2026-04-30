@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   * {
@@ -10,10 +11,63 @@
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100;
   }
 
   #root {
     min-height: 100svh;
   }
+}
+
+@layer components {
+  .dark .bg-white { @apply bg-slate-900; }
+  .dark .bg-gray-50 { @apply bg-slate-950; }
+  .dark .bg-gray-100 { @apply bg-slate-800; }
+  .dark .bg-emerald-50 { @apply bg-emerald-950/50; }
+  .dark .bg-emerald-100 { @apply bg-emerald-900/60; }
+  .dark .bg-amber-50 { @apply bg-amber-950/50; }
+  .dark .bg-amber-100 { @apply bg-amber-900/60; }
+  .dark .bg-sky-50 { @apply bg-sky-950/50; }
+  .dark .bg-sky-100 { @apply bg-sky-900/60; }
+  .dark .bg-violet-50 { @apply bg-violet-950/50; }
+  .dark .bg-violet-100 { @apply bg-violet-900/60; }
+  .dark .bg-red-50 { @apply bg-red-950/50; }
+  .dark .bg-red-100 { @apply bg-red-900/60; }
+  .dark .bg-blue-50 { @apply bg-blue-950/50; }
+  .dark .bg-blue-100 { @apply bg-blue-900/60; }
+
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300 { @apply border-slate-700; }
+  .dark .border-emerald-100 { @apply border-emerald-900; }
+  .dark .border-amber-100 { @apply border-amber-900; }
+  .dark .border-red-100 { @apply border-red-900; }
+  .dark .border-blue-100 { @apply border-blue-900; }
+
+  .dark .text-gray-900 { @apply text-slate-100; }
+  .dark .text-gray-800 { @apply text-slate-200; }
+  .dark .text-gray-700 { @apply text-slate-200; }
+  .dark .text-gray-600 { @apply text-slate-300; }
+  .dark .text-gray-500 { @apply text-slate-400; }
+  .dark .text-gray-400 { @apply text-slate-500; }
+  .dark .text-emerald-700 { @apply text-emerald-300; }
+  .dark .text-emerald-800 { @apply text-emerald-200; }
+  .dark .text-amber-700,
+  .dark .text-amber-800,
+  .dark .text-amber-900 { @apply text-amber-200; }
+  .dark .text-sky-800,
+  .dark .text-sky-900 { @apply text-sky-200; }
+  .dark .text-violet-800,
+  .dark .text-violet-900 { @apply text-violet-200; }
+  .dark .text-red-700,
+  .dark .text-red-800 { @apply text-red-200; }
+  .dark .text-blue-700,
+  .dark .text-blue-800 { @apply text-blue-200; }
+
+  .dark input,
+  .dark textarea,
+  .dark select { @apply bg-slate-900 text-slate-100 border-slate-700 placeholder-slate-500; }
+
+  .dark .shadow-sm,
+  .dark .shadow-md { box-shadow: 0 12px 32px rgb(0 0 0 / 0.28); }
 }
