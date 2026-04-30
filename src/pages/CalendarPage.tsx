@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import Button from '../components/ui/Button'
 import { cn } from '../lib/cn'
@@ -85,16 +85,28 @@ function formatMonth(date: Date): string {
   return new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(date)
 }
 
+function formatSelectedDate(date: Date): string {
+  return new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+}
+
 function createMonthOffset(base: Date, offset: number): Date {
   return new Date(base.getFullYear(), base.getMonth() + offset, 1)
 }
 
-function CalendarMonthBlock({ month }: { month: CalendarMonth }) {
+function CalendarMonthBlock({
+  month,
+  selectedDate,
+  onSelectDay,
+}: {
+  month: CalendarMonth
+  selectedDate: Date | null
+  onSelectDay: (day: CalendarDay) => void
+}) {
   return (
     <section>
-      <div className="bg-zinc-900 px-2 py-2 text-center">
-        <h2 className="text-3xl font-light capitalize leading-tight text-white sm:text-4xl">{formatMonth(month.date)}</h2>
-        <div className="mt-1 grid grid-cols-[22px_repeat(7,minmax(0,1fr))] text-2xl font-light text-white sm:text-3xl">
+      <div className="bg-zinc-900 px-2 py-1.5 text-center">
+        <h2 className="text-2xl font-light capitalize leading-tight text-white sm:text-3xl">{formatMonth(month.date)}</h2>
+        <div className="mt-0.5 grid grid-cols-[18px_repeat(7,minmax(0,1fr))] text-xl font-light text-white sm:text-2xl">
           <div />
           {weekdays.map((day) => (
             <div key={day}>{day}</div>
@@ -102,12 +114,18 @@ function CalendarMonthBlock({ month }: { month: CalendarMonth }) {
         </div>
       </div>
 
-      <div className="bg-black pb-1 pt-3">
+      <div className="bg-black pb-0.5 pt-2">
         {month.weeks.map((week) => (
-          <div key={`${month.date.toISOString()}-${week.weekNumber}`} className="grid grid-cols-[22px_repeat(7,minmax(0,1fr))] items-end">
-            <div className="pb-8 pl-1 text-[10px] italic text-zinc-600 sm:text-xs">{week.weekNumber}</div>
+          <div key={`${month.date.toISOString()}-${week.weekNumber}`} className="grid grid-cols-[18px_repeat(7,minmax(0,1fr))] items-end">
+            <div className="pb-6 pl-0.5 text-[9px] italic text-zinc-600 sm:text-[11px]">{week.weekNumber}</div>
             {week.days.map((day, index) => (
-              <DayCell key={day ? day.date.toISOString() : `${week.weekNumber}-${index}`} day={day} isSunday={index === 6} />
+              <DayCell
+                key={day ? day.date.toISOString() : `${week.weekNumber}-${index}`}
+                day={day}
+                isSunday={index === 6}
+                isSelected={!!day && !!selectedDate && sameDay(day.date, selectedDate)}
+                onSelectDay={onSelectDay}
+              />
             ))}
           </div>
         ))}
@@ -116,40 +134,64 @@ function CalendarMonthBlock({ month }: { month: CalendarMonth }) {
   )
 }
 
-function DayCell({ day, isSunday }: { day: CalendarCell; isSunday: boolean }) {
-  if (!day) return <div className="h-[72px] sm:h-20" />
+function DayCell({
+  day,
+  isSunday,
+  isSelected,
+  onSelectDay,
+}: {
+  day: CalendarCell
+  isSunday: boolean
+  isSelected: boolean
+  onSelectDay: (day: CalendarDay) => void
+}) {
+  if (!day) return <div className="h-[56px] sm:h-16" />
 
   const symbol = day.shift?.symbol ?? '-'
   const showBlock = symbol !== '-'
 
   return (
-    <div className="relative flex h-[72px] flex-col items-center justify-start text-white sm:h-20">
-      <div className={cn('text-2xl font-light leading-none sm:text-3xl', isSunday && 'text-red-600', day.isToday && 'text-red-500 italic')}>
+    <button
+      type="button"
+      onClick={() => onSelectDay(day)}
+      aria-pressed={isSelected}
+      aria-label={`${formatSelectedDate(day.date)}: ${day.shift?.label ?? 'Frei'}`}
+      className={cn(
+        'relative flex h-[56px] flex-col items-center justify-start text-white transition-transform active:scale-95 sm:h-16',
+        isSelected && 'z-10 scale-[1.02]'
+      )}
+    >
+      <div className={cn('text-xl font-light leading-none sm:text-2xl', isSunday && 'text-red-600', day.isToday && 'text-red-500 italic')}>
         {day.date.getDate()}
       </div>
 
       <div
         className={cn(
-          'mt-2 flex h-10 w-full items-center justify-center border border-black text-2xl font-light leading-none sm:h-11 sm:text-3xl',
+          'mt-1.5 flex h-8 w-full items-center justify-center border border-black text-xl font-light leading-none sm:h-9 sm:text-2xl',
           showBlock ? shiftStyles[symbol] : 'bg-black text-white',
-          day.isToday && 'ring-4 ring-red-600 ring-inset'
+          day.isToday && 'ring-3 ring-red-600 ring-inset',
+          isSelected && 'ring-4 ring-white ring-inset'
         )}
-        aria-label={day.shift?.label ?? 'Frei'}
       >
         {symbol}
       </div>
-    </div>
+    </button>
   )
 }
 
 export default function CalendarPage() {
   const { profile } = useAuth()
   const [visibleMonth, setVisibleMonth] = useState(() => new Date())
+  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const months = useMemo(
     () => [-1, 0, 1].map((offset) => buildMonth(createMonthOffset(visibleMonth, offset), profile?.shift_start_date)),
     [visibleMonth, profile?.shift_start_date]
   )
+
+  const selectedShift = selectedDay?.shift
+  const selectedSymbol = selectedShift?.symbol ?? '-'
 
   const goToPreviousMonth = () =>
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
@@ -157,25 +199,51 @@ export default function CalendarPage() {
   const goToNextMonth = () =>
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
 
-  const goToToday = () => setVisibleMonth(new Date())
+  const goToToday = () => {
+    const today = new Date()
+    setVisibleMonth(today)
+    setSelectedDay({ date: today, isToday: true, shift: getShiftInfoForDate(profile?.shift_start_date, today) })
+  }
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-zinc-800">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 bg-black px-3 py-3">
-        <Button variant="ghost" size="sm" onClick={goToPreviousMonth} aria-label="Vorheriger Monat" className="text-white hover:bg-zinc-900">
+    <div
+      className={cn(
+        'overflow-hidden bg-black shadow-2xl ring-1 ring-zinc-800',
+        isFullscreen ? 'fixed inset-0 z-50 flex h-svh flex-col rounded-none' : 'rounded-2xl'
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 bg-black px-2 py-2">
+        <Button variant="ghost" size="sm" onClick={goToPreviousMonth} aria-label="Vorheriger Monat" className="px-2 text-white hover:bg-zinc-900">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <button type="button" onClick={goToToday} className="text-sm font-semibold text-zinc-300 hover:text-white">
-          Heute anzeigen
+        <button type="button" onClick={goToToday} className="text-xs font-semibold text-zinc-300 hover:text-white sm:text-sm">
+          Heute
         </button>
-        <Button variant="ghost" size="sm" onClick={goToNextMonth} aria-label="Nächster Monat" className="text-white hover:bg-zinc-900">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setIsFullscreen((current) => !current)} aria-label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild'} className="px-2 text-white hover:bg-zinc-900">
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={goToNextMonth} aria-label="Nächster Monat" className="px-2 text-white hover:bg-zinc-900">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="max-h-[calc(100svh-190px)] overflow-y-auto bg-black">
+      {selectedDay && (
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950 px-3 py-2 text-white">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-zinc-500">Ausgewählter Tag</div>
+            <div className="text-sm font-semibold capitalize">{formatSelectedDate(selectedDay.date)}</div>
+          </div>
+          <div className={cn('min-w-14 px-3 py-1 text-center text-lg font-semibold', shiftStyles[selectedSymbol])}>
+            {selectedSymbol === '-' ? 'Frei' : selectedSymbol}
+          </div>
+        </div>
+      )}
+
+      <div className={cn('overflow-y-auto bg-black', isFullscreen ? 'min-h-0 flex-1' : 'max-h-[calc(100svh-190px)]')}>
         {months.map((month) => (
-          <CalendarMonthBlock key={month.date.toISOString()} month={month} />
+          <CalendarMonthBlock key={month.date.toISOString()} month={month} selectedDate={selectedDay?.date ?? null} onSelectDay={setSelectedDay} />
         ))}
       </div>
     </div>
