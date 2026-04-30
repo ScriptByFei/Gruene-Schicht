@@ -1,4 +1,4 @@
-const SHIFT_PATTERN = 'FFFSSS--SSSNN-----FFFNNNN----'
+const SHIFT_PATTERN = 'FFFSSS-SSSNN-----FFFNNNN----'
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export type CurrentShift = 'Spätschicht' | 'Nachtschicht' | 'Frühschicht' | 'Frei'
@@ -28,7 +28,7 @@ export const SHIFT_TEAM_OPTIONS = [
   { value: '', label: 'Schicht auswählen' },
   ...SHIFT_TEAMS.map((team) => ({
     value: team.startDate,
-    label: `${team.name} · Start ${formatShiftStartDate(team.startDate)}`,
+    label: team.name,
   })),
 ]
 
