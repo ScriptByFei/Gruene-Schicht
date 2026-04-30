@@ -54,15 +54,6 @@ interface CalendarDay {
   shift: ShiftInfo | null
 }
 
-interface AllShiftRow {
-  date: Date
-  isToday: boolean
-  shifts: {
-    teamName: ShiftTeamName
-    startDate: string
-    shift: ShiftInfo | null
-  }[]
-}
 
 function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
@@ -91,22 +82,13 @@ function buildMonthDays(monthDate: Date, shiftStartDate?: string | null): Calend
   })
 }
 
-function buildAllShiftRows(monthDate: Date): AllShiftRow[] {
-  const today = new Date()
+function buildAllShiftDates(monthDate: Date): Date[] {
   const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate()
 
-  return Array.from({ length: daysInMonth }, (_, index) => {
-    const date = new Date(monthDate.getFullYear(), monthDate.getMonth(), index + 1)
-    return {
-      date,
-      isToday: sameDay(date, today),
-      shifts: SHIFT_TEAMS.map((team) => ({
-        teamName: team.name,
-        startDate: team.startDate,
-        shift: getShiftInfoForDate(team.startDate, date),
-      })),
-    }
-  })
+  return Array.from(
+    { length: daysInMonth },
+    (_, index) => new Date(monthDate.getFullYear(), monthDate.getMonth(), index + 1)
+  )
 }
 
 function formatMonth(date: Date): string {
@@ -156,8 +138,8 @@ export default function CalendarPage() {
     }),
     [profile?.shift_start_date]
   )
-  const allShiftRows = useMemo(
-    () => buildAllShiftRows(visibleMonth),
+  const allShiftDates = useMemo(
+    () => buildAllShiftDates(visibleMonth),
     [visibleMonth]
   )
 
@@ -281,44 +263,57 @@ export default function CalendarPage() {
         <div className="mb-4">
           <h2 className="text-base font-semibold text-gray-900">Alle Schichten</h2>
           <p className="mt-1 text-xs text-gray-500">
-            Datum vertikal, Schichten horizontal für {formatMonth(visibleMonth)}.
+            Datum oben, Schichten links für {formatMonth(visibleMonth)}.
           </p>
         </div>
 
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[560px] w-full border-separate border-spacing-0 text-sm">
+          <table className="min-w-[1120px] w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
                 <th className="sticky left-0 z-10 bg-white pb-2 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Datum
+                  Schicht
                 </th>
-                {SHIFT_TEAMS.map((team) => (
-                  <th key={team.name} className="pb-2 px-1 text-center">
-                    <span className={cn('inline-flex w-full justify-center rounded-xl border px-3 py-2 text-xs font-bold', teamHeaderStyles[team.name])}>
-                      {team.name}
-                    </span>
+                {allShiftDates.map((date) => {
+                  const isToday = sameDay(date, new Date())
+                  return (
+                  <th key={date.toISOString()} className={cn('pb-2 px-1 text-center', isToday && 'bg-emerald-50')}>
+                    <div className={cn('rounded-xl px-2 py-2 text-[11px] font-bold text-gray-700', isToday && 'text-emerald-700')}>
+                      <div>{date.getDate()}</div>
+                      <div className="font-medium text-gray-400">{weekdays[(date.getDay() + 6) % 7]}</div>
+                    </div>
                   </th>
-                ))}
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
-              {allShiftRows.map((row) => (
-                <tr key={row.date.toISOString()} className={cn(row.isToday && 'bg-emerald-50/70')}>
-                  <td className={cn('sticky left-0 z-10 border-t border-gray-100 bg-white py-2.5 pr-3 text-left', row.isToday && 'bg-emerald-50')}>
-                    <div className="font-semibold text-gray-900">{formatLongDate(row.date)}</div>
-                    {row.isToday && <div className="text-[11px] font-medium text-emerald-700">Heute</div>}
+              {SHIFT_TEAMS.map((team) => (
+                <tr key={team.name}>
+                  <td className={cn(
+                    'sticky left-0 z-10 border-t border-gray-100 bg-white py-2.5 pr-3 text-left',
+                    team.startDate === profile.shift_start_date && 'bg-emerald-50'
+                  )}>
+                    <span className={cn('inline-flex w-20 justify-center rounded-xl border px-3 py-2 text-xs font-bold', teamHeaderStyles[team.name])}>
+                      {team.name}
+                    </span>
                   </td>
-                  {row.shifts.map(({ teamName, startDate, shift }) => (
+                  {allShiftDates.map((date) => {
+                    const isToday = sameDay(date, new Date())
+                    const shift = getShiftInfoForDate(team.startDate, date)
+                    return (
                     <td
-                      key={`${row.date.toISOString()}-${teamName}`}
+                      key={`${team.name}-${date.toISOString()}`}
                       className={cn(
                         'border-t border-gray-100 px-1 py-2.5 text-center',
-                        startDate === profile.shift_start_date && 'bg-emerald-50/50'
+                        team.startDate === profile.shift_start_date && 'bg-emerald-50/50',
+                        isToday && 'bg-emerald-50'
                       )}
                     >
                       <ShiftTableCell shift={shift} />
                     </td>
-                  ))}
+                    )
+                  })}
                 </tr>
               ))}
             </tbody>
