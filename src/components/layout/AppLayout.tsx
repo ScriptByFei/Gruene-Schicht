@@ -31,7 +31,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-30 transition-colors">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link to="/dashboard" className="flex items-center gap-2.5 font-semibold text-gray-900 dark:text-white">
-            <CalendarDays className="w-5 h-5 text-emerald-600" />
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt="Grüne Schicht Logo"
+              className="h-8 w-8"
+            />
             <span className="text-sm tracking-wide">Grüne Schicht</span>
           </Link>
 
