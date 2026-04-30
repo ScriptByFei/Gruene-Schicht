@@ -1,17 +1,24 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import Button from '../components/ui/Button'
 import { cn } from '../lib/cn'
-import { getShiftInfoForDate, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
+import { getShiftInfoForDate, SHIFT_PATTERN, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
 
-const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
 
-const shiftStyles: Record<ShiftSymbol, string> = {
-  F: 'bg-yellow-300 text-black',
-  S: 'bg-red-600 text-white',
-  N: 'bg-blue-700 text-white',
-  '-': 'bg-black text-white',
+const shiftDotClass: Record<ShiftSymbol, string> = {
+  F: 'bg-amber-400',
+  S: 'bg-red-500',
+  N: 'bg-blue-600',
+  '-': 'bg-transparent',
+}
+
+const shiftLabelClass: Record<ShiftSymbol, string> = {
+  F: 'bg-amber-100 text-amber-800',
+  S: 'bg-red-100 text-red-800',
+  N: 'bg-blue-100 text-blue-800',
+  '-': 'bg-gray-100 text-gray-500',
 }
 
 interface CalendarDay {
@@ -28,7 +35,8 @@ interface CalendarWeek {
 }
 
 interface CalendarMonth {
-  date: Date
+  year: number
+  monthIndex: number
   weeks: CalendarWeek[]
 }
 
@@ -52,9 +60,9 @@ function getIsoWeekNumber(date: Date): number {
   return 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000))
 }
 
-function buildMonth(monthDate: Date, shiftStartDate?: string | null): CalendarMonth {
-  const firstOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
-  const lastOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
+function buildMonth(year: number, monthIndex: number, shiftStartDate?: string | null): CalendarMonth {
+  const firstOfMonth = new Date(year, monthIndex, 1)
+  const lastOfMonth = new Date(year, monthIndex + 1, 0)
   const mondayOffset = (firstOfMonth.getDay() + 6) % 7
   const firstCell = addDays(firstOfMonth, -mondayOffset)
   const totalCells = Math.ceil((mondayOffset + lastOfMonth.getDate()) / 7) * 7
@@ -66,7 +74,7 @@ function buildMonth(monthDate: Date, shiftStartDate?: string | null): CalendarMo
     const monday = addDays(firstCell, weekIndex * 7)
     const days: CalendarCell[] = Array.from({ length: 7 }, (_, dayIndex) => {
       const date = addDays(monday, dayIndex)
-      if (date.getMonth() !== monthDate.getMonth()) return null
+      if (date.getMonth() !== monthIndex) return null
 
       return {
         date,
@@ -78,22 +86,19 @@ function buildMonth(monthDate: Date, shiftStartDate?: string | null): CalendarMo
     weeks.push({ weekNumber: getIsoWeekNumber(monday), days })
   }
 
-  return { date: firstOfMonth, weeks }
+  return { year, monthIndex, weeks }
 }
 
-function formatMonth(date: Date): string {
-  return new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(date)
-}
+const MONTH_NAMES = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+]
 
 function formatSelectedDate(date: Date): string {
   return new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
-function createMonthOffset(base: Date, offset: number): Date {
-  return new Date(base.getFullYear(), base.getMonth() + offset, 1)
-}
-
-function CalendarMonthBlock({
+function MiniMonth({
   month,
   selectedDate,
   onSelectDay,
@@ -102,39 +107,31 @@ function CalendarMonthBlock({
   selectedDate: Date | null
   onSelectDay: (day: CalendarDay) => void
 }) {
-  return (
-    <section>
-      <div className="bg-zinc-900 px-2 py-1.5 text-center">
-        <h2 className="text-2xl font-light capitalize leading-tight text-white sm:text-3xl">{formatMonth(month.date)}</h2>
-        <div className="mt-0.5 grid grid-cols-[18px_repeat(7,minmax(0,1fr))] text-xl font-light text-white sm:text-2xl">
-          <div />
-          {weekdays.map((day) => (
-            <div key={day}>{day}</div>
-          ))}
-        </div>
-      </div>
+  const monthName = MONTH_NAMES[month.monthIndex]
 
-      <div className="bg-black pb-0.5 pt-2">
-        {month.weeks.map((week) => (
-          <div key={`${month.date.toISOString()}-${week.weekNumber}`} className="grid grid-cols-[18px_repeat(7,minmax(0,1fr))] items-end">
-            <div className="pb-6 pl-0.5 text-[9px] italic text-zinc-600 sm:text-[11px]">{week.weekNumber}</div>
-            {week.days.map((day, index) => (
-              <DayCell
-                key={day ? day.date.toISOString() : `${week.weekNumber}-${index}`}
-                day={day}
-                isSunday={index === 6}
-                isSelected={!!day && !!selectedDate && sameDay(day.date, selectedDate)}
-                onSelectDay={onSelectDay}
-              />
-            ))}
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="mb-2 text-center text-base font-semibold text-gray-800 dark:text-slate-200">
+        {monthName}
+      </h2>
+      <div className="grid grid-cols-7 gap-0">
+        {weekdays.map((d) => (
+          <div key={d} className="pb-1 text-center text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-slate-500">
+            {d}
           </div>
         ))}
+        {month.weeks.flatMap((week) =>
+          week.days.map((day, index) => {
+            const key = day ? day.date.toISOString() : `empty-${week.weekNumber}-${index}-${month.monthIndex}`
+            return <MiniDayCell key={key} day={day} isSunday={index === 6} isSelected={!!day && !!selectedDate && sameDay(day.date, selectedDate)} onSelectDay={onSelectDay} />
+          })
+        )}
       </div>
-    </section>
+    </div>
   )
 }
 
-function DayCell({
+function MiniDayCell({
   day,
   isSunday,
   isSelected,
@@ -145,10 +142,12 @@ function DayCell({
   isSelected: boolean
   onSelectDay: (day: CalendarDay) => void
 }) {
-  if (!day) return <div className="h-[56px] sm:h-16" />
+  if (!day) {
+    return <div className="h-8 sm:h-9" />
+  }
 
   const symbol = day.shift?.symbol ?? '-'
-  const showBlock = symbol !== '-'
+  const hasShift = symbol !== '-'
 
   return (
     <button
@@ -157,95 +156,134 @@ function DayCell({
       aria-pressed={isSelected}
       aria-label={`${formatSelectedDate(day.date)}: ${day.shift?.label ?? 'Frei'}`}
       className={cn(
-        'relative flex h-[56px] flex-col items-center justify-start text-white transition-transform active:scale-95 sm:h-16',
-        isSelected && 'z-10 scale-[1.02]'
+        'relative flex h-8 flex-col items-center justify-center rounded-md transition-all active:scale-95 sm:h-9',
+        isSelected && 'bg-gray-100 dark:bg-slate-800',
+        !isSelected && 'hover:bg-gray-50 dark:hover:bg-slate-800'
       )}
     >
-      <div className={cn('text-xl font-light leading-none sm:text-2xl', isSunday && 'text-red-600', day.isToday && 'text-red-500 italic')}>
-        {day.date.getDate()}
-      </div>
-
-      <div
+      <span
         className={cn(
-          'mt-1.5 flex h-8 w-full items-center justify-center border border-black text-xl font-light leading-none sm:h-9 sm:text-2xl',
-          showBlock ? shiftStyles[symbol] : 'bg-black text-white',
-          day.isToday && 'ring-3 ring-red-600 ring-inset',
-          isSelected && 'ring-4 ring-white ring-inset'
+          'text-xs font-medium sm:text-sm',
+          isSunday && 'text-red-500 dark:text-red-400',
+          day.isToday ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-slate-300'
         )}
       >
-        {symbol}
-      </div>
+        {day.date.getDate()}
+      </span>
+
+      {hasShift && (
+        <span className={cn('mt-0.5 h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2', shiftDotClass[symbol])} />
+      )}
+
+      {day.isToday && (
+        <span className="absolute bottom-0.5 h-0.5 w-3 rounded-full bg-emerald-500" />
+      )}
     </button>
   )
 }
 
 export default function CalendarPage() {
   const { profile } = useAuth()
-  const [visibleMonth, setVisibleMonth] = useState(() => new Date())
-  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>({
+    date: today,
+    isToday: true,
+    shift: getShiftInfoForDate(profile?.shift_start_date, today),
+  })
 
-  const months = useMemo(
-    () => [-1, 0, 1].map((offset) => buildMonth(createMonthOffset(visibleMonth, offset), profile?.shift_start_date)),
-    [visibleMonth, profile?.shift_start_date]
-  )
+  const months = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => buildMonth(year, i, profile?.shift_start_date))
+  }, [year, profile?.shift_start_date])
 
   const selectedShift = selectedDay?.shift
   const selectedSymbol = selectedShift?.symbol ?? '-'
 
-  const goToPreviousMonth = () =>
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
-
-  const goToNextMonth = () =>
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
-
+  const goToPreviousYear = () => setYear((y) => y - 1)
+  const goToNextYear = () => setYear((y) => y + 1)
   const goToToday = () => {
-    const today = new Date()
-    setVisibleMonth(today)
+    const y = today.getFullYear()
+    setYear(y)
     setSelectedDay({ date: today, isToday: true, shift: getShiftInfoForDate(profile?.shift_start_date, today) })
   }
 
   return (
-    <div
-      className={cn(
-        'overflow-hidden bg-black shadow-2xl ring-1 ring-zinc-800',
-        isFullscreen ? 'fixed inset-0 z-50 flex h-svh flex-col rounded-none' : 'rounded-2xl'
-      )}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 bg-black px-2 py-2">
-        <Button variant="ghost" size="sm" onClick={goToPreviousMonth} aria-label="Vorheriger Monat" className="px-2 text-white hover:bg-zinc-900">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <button type="button" onClick={goToToday} className="text-xs font-semibold text-zinc-300 hover:text-white sm:text-sm">
-          Heute
-        </button>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setIsFullscreen((current) => !current)} aria-label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild'} className="px-2 text-white hover:bg-zinc-900">
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900/40">
+            <Calendar className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Schichtkalender</h1>
+            <p className="text-sm text-gray-500 dark:text-slate-400">{year}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={goToPreviousYear} aria-label="Vorheriges Jahr"> 
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={goToNextMonth} aria-label="Nächster Monat" className="px-2 text-white hover:bg-zinc-900">
+          <Button variant="secondary" size="sm" onClick={goToToday}>
+            Heute
+          </Button>
+          <Button variant="ghost" size="sm" onClick={goToNextYear} aria-label="Nächstes Jahr">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {selectedDay && (
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950 px-3 py-2 text-white">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-zinc-500">Ausgewählter Tag</div>
-            <div className="text-sm font-semibold capitalize">{formatSelectedDate(selectedDay.date)}</div>
-          </div>
-          <div className={cn('min-w-14 px-3 py-1 text-center text-lg font-semibold', shiftStyles[selectedSymbol])}>
-            {selectedSymbol === '-' ? 'Frei' : selectedSymbol}
-          </div>
-        </div>
-      )}
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs font-medium dark:border-slate-700 dark:bg-slate-900">
+        <span className="text-gray-500 dark:text-slate-400">Legende:</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          <span className="text-gray-700 dark:text-slate-300">Früh (F)</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+          <span className="text-gray-700 dark:text-slate-300">Spät (S)</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+          <span className="text-gray-700 dark:text-slate-300">Nacht (N)</span>
+        </span>
+      </div>
 
-      <div className={cn('overflow-y-auto bg-black', isFullscreen ? 'min-h-0 flex-1' : 'max-h-[calc(100svh-190px)]')}>
+      {/* 12 Months Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {months.map((month) => (
-          <CalendarMonthBlock key={month.date.toISOString()} month={month} selectedDate={selectedDay?.date ?? null} onSelectDay={setSelectedDay} />
+          <MiniMonth key={`${month.year}-${month.monthIndex}`} month={month} selectedDate={selectedDay?.date ?? null} onSelectDay={setSelectedDay} />
         ))}
       </div>
+
+      {/* Selected Day Detail */}
+      {selectedDay && (
+        <div className="sticky bottom-0 rounded-xl border border-gray-200 bg-white p-4 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Ausgewählter Tag</p>
+              <p className="mt-0.5 text-lg font-semibold text-gray-900 dark:text-white capitalize">{formatSelectedDate(selectedDay.date)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedShift && (
+                <div className={cn('rounded-lg px-3 py-1.5 text-sm font-bold', shiftLabelClass[selectedSymbol])}>
+                  {selectedShift.label}
+                </div>
+              )}
+              <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg text-xl font-bold', shiftLabelClass[selectedSymbol])}>
+                {selectedSymbol === '-' ? '—' : selectedSymbol}
+              </div>
+            </div>
+          </div>
+          {selectedShift && selectedShift.patternDay && (
+            <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">
+              Schichttag {selectedShift.patternDay} / {SHIFT_PATTERN.length} im 28-Tage-Zyklus
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
