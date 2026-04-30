@@ -5,7 +5,15 @@ import { useAuth } from '../contexts/useAuth'
 import { Card } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import { cn } from '../lib/cn'
-import { SHIFT_PATTERN, getShiftInfoForDate, getShiftTeamLabel, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
+import {
+  SHIFT_PATTERN,
+  SHIFT_TEAMS,
+  getShiftInfoForDate,
+  getShiftTeamLabel,
+  type ShiftInfo,
+  type ShiftSymbol,
+  type ShiftTeamName,
+} from '../lib/shifts'
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -32,11 +40,28 @@ const shiftStyles: Record<ShiftSymbol, { badge: string; tile: string; dot: strin
   },
 }
 
+const teamHeaderStyles: Record<ShiftTeamName, string> = {
+  Rot: 'bg-red-50 text-red-700 border-red-100',
+  Gelb: 'bg-amber-50 text-amber-700 border-amber-100',
+  Blau: 'bg-blue-50 text-blue-700 border-blue-100',
+  Grün: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+}
+
 interface CalendarDay {
   date: Date
   inMonth: boolean
   isToday: boolean
   shift: ShiftInfo | null
+}
+
+interface AllShiftRow {
+  date: Date
+  isToday: boolean
+  shifts: {
+    teamName: ShiftTeamName
+    startDate: string
+    shift: ShiftInfo | null
+  }[]
 }
 
 function sameDay(a: Date, b: Date): boolean {
@@ -66,6 +91,24 @@ function buildMonthDays(monthDate: Date, shiftStartDate?: string | null): Calend
   })
 }
 
+function buildAllShiftRows(monthDate: Date): AllShiftRow[] {
+  const today = new Date()
+  const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate()
+
+  return Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(monthDate.getFullYear(), monthDate.getMonth(), index + 1)
+    return {
+      date,
+      isToday: sameDay(date, today),
+      shifts: SHIFT_TEAMS.map((team) => ({
+        teamName: team.name,
+        startDate: team.startDate,
+        shift: getShiftInfoForDate(team.startDate, date),
+      })),
+    }
+  })
+}
+
 function formatMonth(date: Date): string {
   return new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(date)
 }
@@ -86,6 +129,17 @@ function ShiftPill({ shift }: { shift: ShiftInfo }) {
   )
 }
 
+function ShiftTableCell({ shift }: { shift: ShiftInfo | null }) {
+  if (!shift) return <span className="text-gray-300">–</span>
+
+  return (
+    <span className={cn('inline-flex min-w-10 items-center justify-center rounded-lg px-2 py-1 text-xs font-bold', shiftStyles[shift.symbol].badge)}>
+      <span>{shift.symbol === '-' ? 'Frei' : shift.symbol}</span>
+      <span className="ml-1 hidden sm:inline font-semibold">{shift.symbol === '-' ? '' : shift.label.replace('schicht', '')}</span>
+    </span>
+  )
+}
+
 export default function CalendarPage() {
   const { profile } = useAuth()
   const [visibleMonth, setVisibleMonth] = useState(() => new Date())
@@ -101,6 +155,10 @@ export default function CalendarPage() {
       return { date, shift: getShiftInfoForDate(profile?.shift_start_date, date) }
     }),
     [profile?.shift_start_date]
+  )
+  const allShiftRows = useMemo(
+    () => buildAllShiftRows(visibleMonth),
+    [visibleMonth]
   )
 
   const goToPreviousMonth = () =>
@@ -120,13 +178,13 @@ export default function CalendarPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900">Schichtkalender</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Lege zuerst dein Startdatum im Profil fest. Danach zeigt dir der Kalender automatisch alle Früh-, Spät-, Nacht- und freien Tage.
+            Lege zuerst deine Schicht im Profil fest. Danach zeigt dir der Kalender automatisch alle Früh-, Spät-, Nacht- und freien Tage.
           </p>
           <Link
             to="/profile"
             className="mt-6 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
           >
-            Startdatum eintragen
+            Schicht auswählen
           </Link>
         </Card>
       </div>
@@ -216,6 +274,55 @@ export default function CalendarPage() {
               <span>{symbol === '-' ? 'Frei' : symbol === 'F' ? 'Frühschicht' : symbol === 'S' ? 'Spätschicht' : 'Nachtschicht'}</span>
             </div>
           ))}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-gray-900">Alle Schichten</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            Datum vertikal, Schichten horizontal für {formatMonth(visibleMonth)}.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <table className="min-w-[560px] w-full border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 bg-white pb-2 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Datum
+                </th>
+                {SHIFT_TEAMS.map((team) => (
+                  <th key={team.name} className="pb-2 px-1 text-center">
+                    <span className={cn('inline-flex w-full justify-center rounded-xl border px-3 py-2 text-xs font-bold', teamHeaderStyles[team.name])}>
+                      {team.name}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allShiftRows.map((row) => (
+                <tr key={row.date.toISOString()} className={cn(row.isToday && 'bg-emerald-50/70')}>
+                  <td className={cn('sticky left-0 z-10 border-t border-gray-100 bg-white py-2.5 pr-3 text-left', row.isToday && 'bg-emerald-50')}>
+                    <div className="font-semibold text-gray-900">{formatLongDate(row.date)}</div>
+                    {row.isToday && <div className="text-[11px] font-medium text-emerald-700">Heute</div>}
+                  </td>
+                  {row.shifts.map(({ teamName, startDate, shift }) => (
+                    <td
+                      key={`${row.date.toISOString()}-${teamName}`}
+                      className={cn(
+                        'border-t border-gray-100 px-1 py-2.5 text-center',
+                        startDate === profile.shift_start_date && 'bg-emerald-50/50'
+                      )}
+                    >
+                      <ShiftTableCell shift={shift} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Card>
 
