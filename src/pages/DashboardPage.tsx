@@ -81,7 +81,7 @@ export default function DashboardPage() {
   const currentShift = getCurrentShift(profile?.shift_start_date)
   const todayShift = getShiftInfoForDate(profile?.shift_start_date)
   const nextDays = useMemo(
-    () => Array.from({ length: 3 }, (_, index) => {
+    () => Array.from({ length: 5 }, (_, index) => {
       const date = addDays(new Date(), index)
       return { date, shift: getShiftInfoForDate(profile?.shift_start_date, date) }
     }),
@@ -157,24 +157,20 @@ export default function DashboardPage() {
 
       {/* Schicht-Vorschau */}
       {profile?.shift_start_date ? (
-        <section className="grid gap-4 sm:grid-cols-[1fr_1.25fr]">
-          {todayShift && (
-            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0 shadow-md">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-emerald-100">Heute arbeitest du</p>
-                  <p className="mt-1 text-2xl font-bold">{todayShift.label}</p>
-                  <p className="mt-1 text-xs text-emerald-100">{getShiftTeamLabel(profile.shift_start_date)}</p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-black">
-                  {todayShift.symbol}
-                </div>
-              </div>
-            </Card>
-          )}
-
+        <section>
           <Card>
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Nächste 3 Tage</h2>
+            {todayShift && (
+              <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Heute:</span>
+                  <span className="text-sm font-semibold text-gray-900">{todayShift.label}</span>
+                </div>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md">
+                  {todayShift.symbol === '-' ? '—' : todayShift.symbol}
+                </span>
+              </div>
+            )}
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Nächste 5 Tage</h2>
             <div className="flex flex-col divide-y divide-gray-100">
               {nextDays.map(({ date, shift }) => (
                 <div key={date.toISOString()} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
@@ -185,7 +181,7 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          </Card>
+        </Card>
         </section>
       ) : (
         <Card>
