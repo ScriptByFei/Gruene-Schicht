@@ -25,9 +25,6 @@ function addDays(date: Date, days: number): Date {
   return next
 }
 
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
 
 function formatLongDate(date: Date): string {
   const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(date)
