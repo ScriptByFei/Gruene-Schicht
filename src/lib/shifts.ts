@@ -3,7 +3,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export type CurrentShift = 'Spätschicht' | 'Nachtschicht' | 'Frühschicht' | 'Frei'
 export type ShiftSymbol = 'S' | 'N' | 'F' | '-'
-export type ShiftTeamName = 'Rot' | 'Gelb' | 'Blau' | 'Grün'
+export type ShiftTeamName = 'Rote' | 'Gelbe' | 'Blaue' | 'Grüne'
 
 export interface ShiftInfo {
   symbol: ShiftSymbol
@@ -18,10 +18,10 @@ export interface ShiftTeam {
 }
 
 export const SHIFT_TEAMS: ShiftTeam[] = [
-  { name: 'Rot', startDate: '2026-04-27', color: 'red' },
-  { name: 'Gelb', startDate: '2026-04-13', color: 'yellow' },
-  { name: 'Blau', startDate: '2026-04-20', color: 'blue' },
-  { name: 'Grün', startDate: '2026-05-04', color: 'green' },
+  { name: 'Rote', startDate: '2026-04-27', color: 'red' },
+  { name: 'Gelbe', startDate: '2026-04-13', color: 'yellow' },
+  { name: 'Blaue', startDate: '2026-04-20', color: 'blue' },
+  { name: 'Grüne', startDate: '2026-05-04', color: 'green' },
 ]
 
 export const SHIFT_TEAM_OPTIONS = [

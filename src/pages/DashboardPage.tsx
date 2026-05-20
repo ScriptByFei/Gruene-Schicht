@@ -30,11 +30,11 @@ function sameDay(a: Date, b: Date): boolean {
 }
 
 function formatLongDate(date: Date): string {
-  return new Intl.DateTimeFormat('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  }).format(date)
+  const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(date)
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  // "Mi. 20.05" — kein Komma, kein abschließender Punkt
+  return `${weekday.replace('.', '')}. ${day}.${month}`
 }
 
 function ShiftPill({ shift }: { shift: ShiftInfo }) {
@@ -84,7 +84,7 @@ export default function DashboardPage() {
   const currentShift = getCurrentShift(profile?.shift_start_date)
   const todayShift = getShiftInfoForDate(profile?.shift_start_date)
   const nextDays = useMemo(
-    () => Array.from({ length: 10 }, (_, index) => {
+    () => Array.from({ length: 3 }, (_, index) => {
       const date = addDays(new Date(), index)
       return { date, shift: getShiftInfoForDate(profile?.shift_start_date, date) }
     }),
@@ -109,50 +109,8 @@ export default function DashboardPage() {
         <p className="mb-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
       )}
 
-      {profile?.shift_start_date ? (
-        <section className="mb-8 grid gap-4 sm:grid-cols-[1fr_1.25fr]">
-          {todayShift && (
-            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0 shadow-md">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-emerald-100">Heute arbeitest du</p>
-                  <p className="mt-1 text-2xl font-bold">{todayShift.label}</p>
-                  <p className="mt-1 text-xs text-emerald-100">{getShiftTeamLabel(profile.shift_start_date)}</p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-black">
-                  {todayShift.symbol}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          <Card>
-            <h2 className="text-base font-semibold text-gray-900 mb-3">So arbeitest du</h2>
-            <div className="flex flex-col divide-y divide-gray-100">
-              {nextDays.map(({ date, shift }) => (
-                <div key={date.toISOString()} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{formatLongDate(date)}</p>
-                    {sameDay(date, new Date()) && <p className="text-xs text-emerald-700 font-medium">Heute</p>}
-                  </div>
-                  {shift && <ShiftPill shift={shift} />}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </section>
-      ) : (
-        <Card className="mb-8">
-          <h2 className="text-base font-semibold text-gray-900">Schicht auswählen</h2>
-          <p className="mt-1 text-sm text-gray-600">Wähle im Profil deine Schicht, damit hier angezeigt wird, wie du arbeitest.</p>
-          <Link to="/profile" className="mt-4 inline-flex text-sm font-medium text-emerald-700 hover:text-emerald-800">
-            Zum Profil
-          </Link>
-        </Card>
-      )}
-
       {/* Active Events */}
-      <section>
+      <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
             Aktive Events
@@ -184,7 +142,7 @@ export default function DashboardPage() {
 
       {/* Closed Events */}
       {closedEvents.length > 0 && (
-        <section className="mt-8">
+        <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Abgeschlossen
           </h2>
@@ -198,6 +156,48 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Schicht-Vorschau */}
+      {profile?.shift_start_date ? (
+        <section className="grid gap-4 sm:grid-cols-[1fr_1.25fr]">
+          {todayShift && (
+            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0 shadow-md">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-emerald-100">Heute arbeitest du</p>
+                  <p className="mt-1 text-2xl font-bold">{todayShift.label}</p>
+                  <p className="mt-1 text-xs text-emerald-100">{getShiftTeamLabel(profile.shift_start_date)}</p>
+                </div>
+                <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-black">
+                  {todayShift.symbol}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Nächste 3 Tage</h2>
+            <div className="flex flex-col divide-y divide-gray-100">
+              {nextDays.map(({ date, shift }) => (
+                <div key={date.toISOString()} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{formatLongDate(date)}</p>
+                  </div>
+                  {shift && <ShiftPill shift={shift} />}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </section>
+      ) : (
+        <Card>
+          <h2 className="text-base font-semibold text-gray-900">Schicht auswählen</h2>
+          <p className="mt-1 text-sm text-gray-600">Wähle im Profil deine Schicht, damit hier angezeigt wird, wie du arbeitest.</p>
+          <Link to="/profile" className="mt-4 inline-flex text-sm font-medium text-emerald-700 hover:text-emerald-800">
+            Zum Profil
+          </Link>
+        </Card>
       )}
     </div>
   )
