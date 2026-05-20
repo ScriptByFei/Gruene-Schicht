@@ -186,12 +186,12 @@ export default function CalendarPage() {
       </div>
 
       {/* Alle 12 Monate */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
         {months.map((month, i) => (
           <div
             key={month.monthIndex}
             ref={el => { monthRefs.current[i] = el }}
-            className="glass rounded-2xl p-3 scroll-mt-[116px]"
+            className="glass rounded-2xl p-2 scroll-mt-[116px]"
           >
             <MonthGrid
               month={month}
