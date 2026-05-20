@@ -191,7 +191,7 @@ export default function CalendarPage() {
           <div
             key={month.monthIndex}
             ref={el => { monthRefs.current[i] = el }}
-            className="glass rounded-2xl p-3"
+            className="glass rounded-2xl p-3 scroll-mt-[116px]"
           >
             <MonthGrid
               month={month}
