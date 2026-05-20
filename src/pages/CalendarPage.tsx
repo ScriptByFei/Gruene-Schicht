@@ -86,6 +86,11 @@ function DayCell({ day, onSelect, isSelected }: {
         symbol === '-' && isSunday && 'text-red-500 dark:text-red-400',
       )}
     >
+      {symbol !== '-' && (
+        <span className="absolute top-0.5 left-1 text-[8px] font-medium opacity-80 leading-none">
+          {day.date.getDate()}
+        </span>
+      )}
       {symbol === '-' ? day.date.getDate() : symbol}
     </button>
   )
