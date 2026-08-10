@@ -6,7 +6,7 @@ async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> 
   if (userIds.length === 0) return suggestions
 
   const { data: profiles, error } = await supabase
-    .from('profiles')
+    .from('profile_directory')
     .select('id, display_name, shift_start_date')
     .in('id', userIds)
   if (error) throw error

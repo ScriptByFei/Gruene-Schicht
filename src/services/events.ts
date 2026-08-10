@@ -31,7 +31,7 @@ export async function getEvent(id: string): Promise<Event | null> {
 }
 
 export async function createEvent(
-  payload: Pick<Event, 'title' | 'description' | 'status'> & { created_by: string }
+  payload: Pick<Event, 'organization_id' | 'title' | 'description' | 'status'> & { created_by: string }
 ): Promise<Event> {
   const { data, error } = await supabase
     .from('events')

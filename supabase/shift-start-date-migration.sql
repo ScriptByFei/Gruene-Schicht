@@ -1,3 +1,4 @@
+-- LEGACY MIGRATION ONLY. This change is included in the migration baseline.
 -- Migration: replace shift_group with per-user shift_start_date
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shift_start_date TEXT DEFAULT NULL;

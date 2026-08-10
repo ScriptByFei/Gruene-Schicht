@@ -46,14 +46,25 @@ if (!user) {
   process.exit(1)
 }
 
-const { data: profile, error: updateError } = await admin
-  .from('profiles')
-  .update({ role: 'admin' })
-  .eq('id', user.id)
-  .select('id, display_name, role')
+const { data: organization, error: organizationError } = await admin
+  .from('organizations')
+  .select('id,name')
+  .eq('slug', 'gruene-schicht')
+  .single()
+if (organizationError) throw organizationError
+
+const { data: membership, error: updateError } = await admin
+  .from('organization_members')
+  .upsert({
+    organization_id: organization.id,
+    user_id: user.id,
+    role: 'admin',
+    status: 'active',
+  }, { onConflict: 'organization_id,user_id' })
+  .select('organization_id, user_id, role')
   .single()
 
 if (updateError) throw updateError
 
-console.log(`Updated ${TARGET_EMAIL} to role=${profile.role}`)
-console.log(`Profile id: ${profile.id}`)
+console.log(`Updated ${TARGET_EMAIL} to role=${membership.role}`)
+console.log(`Organization: ${organization.name} (${membership.organization_id})`)

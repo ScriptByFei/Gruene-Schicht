@@ -1,3 +1,5 @@
+-- LEGACY SNAPSHOT ONLY. Do not apply this file to a new or hosted project.
+-- The canonical schema is maintained in supabase/migrations/.
 -- ============================================================
 -- Gruene-Schicht – Supabase Schema
 -- ============================================================

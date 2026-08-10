@@ -55,7 +55,9 @@ function getPatternIndex(shiftStartDate: string, date: Date): number | null {
   if (!start) return null
 
   const current = startOfLocalDay(date)
-  const diffDays = Math.floor((current.getTime() - start.getTime()) / MS_PER_DAY)
+  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())
+  const currentUtc = Date.UTC(current.getFullYear(), current.getMonth(), current.getDate())
+  const diffDays = Math.floor((currentUtc - startUtc) / MS_PER_DAY)
   return ((diffDays % SHIFT_PATTERN.length) + SHIFT_PATTERN.length) % SHIFT_PATTERN.length
 }
 
