@@ -29,17 +29,21 @@ export async function createPoll(
   payload: Pick<Poll, 'event_id' | 'title' | 'description' | 'type'>,
   optionLabels: string[]
 ): Promise<Poll> {
+  const { data: pollId, error: createError } = await supabase.rpc('create_poll_with_options', {
+    p_event_id: payload.event_id,
+    p_title: payload.title,
+    p_description: payload.description ?? '',
+    p_type: payload.type,
+    p_option_labels: optionLabels,
+  })
+  if (createError) throw createError
+
   const { data: poll, error: pollError } = await supabase
     .from('polls')
-    .insert({ ...payload, is_open: true })
-    .select()
+    .select('*')
+    .eq('id', pollId)
     .single()
   if (pollError) throw pollError
-
-  const options = optionLabels.map((label) => ({ poll_id: poll.id, label }))
-  const { error: optionsError } = await supabase.from('poll_options').insert(options)
-  if (optionsError) throw optionsError
-
   return poll as Poll
 }
 

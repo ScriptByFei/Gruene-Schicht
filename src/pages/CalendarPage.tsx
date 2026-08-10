@@ -136,7 +136,7 @@ function MonthGrid({ month, selectedDate, onSelect }: {
 
 export default function CalendarPage() {
   const { profile } = useAuth()
-  const today = new Date()
+  const [today] = useState(() => new Date())
 
   const [year, setYear] = useState(today.getFullYear())
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>({
@@ -161,7 +161,7 @@ export default function CalendarPage() {
     if (ref) {
       setTimeout(() => ref.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
     }
-  }, [year])
+  }, [year, today])
 
   const shiftDetailClass: Record<ShiftSymbol, string> = {
     F: 'bg-amber-400 text-white',
@@ -170,7 +170,10 @@ export default function CalendarPage() {
     '-': 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400',
   }
 
-  const selectedSymbol = selectedDay?.shift?.symbol ?? '-'
+  const selectedShift = selectedDay
+    ? getShiftInfoForDate(profile?.shift_start_date, selectedDay.date)
+    : null
+  const selectedSymbol = selectedShift?.symbol ?? '-'
 
   return (
     <div className="mx-auto max-w-md pb-48 sm:pb-6">
@@ -223,8 +226,8 @@ export default function CalendarPage() {
               {selectedSymbol === '-' ? '—' : selectedSymbol}
             </div>
           </div>
-          {selectedDay.shift?.label && (
-            <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{selectedDay.shift.label}</p>
+          {selectedShift?.label && (
+            <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{selectedShift.label}</p>
           )}
         </div>
       )}

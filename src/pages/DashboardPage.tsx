@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { getActiveEvents } from '../services/events'
-import { getAttendanceForEvent } from '../services/attendance'
+import { getUserAttendanceForEvents } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
@@ -10,7 +10,7 @@ import { getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 
 export default function DashboardPage() {
-  const { profile, user } = useAuth()
+  const { profile, user, organization } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [attendanceMap, setAttendanceMap] = useState<Record<string, EventAttendance>>({})
   const [loading, setLoading] = useState(true)
@@ -23,13 +23,13 @@ export default function DashboardPage() {
         setEvents(evts)
 
         if (user && evts.length > 0) {
-          const allAttendance = await Promise.all(
-            evts.map((e) => getAttendanceForEvent(e.id))
+          const allAttendance = await getUserAttendanceForEvents(
+            evts.map((event) => event.id),
+            user.id
           )
           const map: Record<string, EventAttendance> = {}
-          evts.forEach((evt, i) => {
-            const myRecord = allAttendance[i].find((a) => a.user_id === user.id)
-            if (myRecord) map[evt.id] = myRecord
+          allAttendance.forEach((record) => {
+            map[record.event_id] = record
           })
           setAttendanceMap(map)
         }
@@ -63,6 +63,15 @@ export default function DashboardPage() {
 
       {error && (
         <p className="mb-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+      )}
+
+      {!organization && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-900">Betriebszugang ausstehend</p>
+          <p className="mt-1 text-xs text-amber-700">
+            Dein Konto ist registriert, wurde aber noch keinem Betrieb zugeordnet.
+          </p>
+        </div>
       )}
 
       {/* Active Events */}

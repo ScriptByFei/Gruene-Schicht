@@ -3,7 +3,7 @@ import { Plus, ChevronDown, ChevronUp, Trash2, Lock, Unlock, X, Pencil } from 'l
 import { useAuth } from '../contexts/useAuth'
 import { getAllEvents, createEvent, updateEvent, setEventStatus, deleteEvent } from '../services/events'
 import { getPollsForEvent, createPoll, togglePollOpen, deletePoll } from '../services/polls'
-import { getAttendanceForEvent, computeAttendanceSummary } from '../services/attendance'
+import { getAttendanceSummary } from '../services/attendance'
 import { getSuggestionsForEvent, updateSuggestionStatus } from '../services/suggestions'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Input, Textarea, Select } from '../components/ui/Input'
@@ -23,7 +23,7 @@ interface EventWithData {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
+  const { user, organization } = useAuth()
   const [eventsWithData, setEventsWithData] = useState<EventWithData[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
@@ -51,13 +51,13 @@ export default function AdminPage() {
       events.map(async (event) => {
         const [polls, attendance, suggestions] = await Promise.all([
           getPollsForEvent(event.id),
-          getAttendanceForEvent(event.id),
+          getAttendanceSummary(event.id),
           getSuggestionsForEvent(event.id),
         ])
         return {
           event,
           polls,
-          attendance: computeAttendanceSummary(attendance),
+          attendance,
           suggestions,
         }
       })
@@ -87,9 +87,12 @@ export default function AdminPage() {
 
   const handleCreateEvent = async (e: FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user || !organization) {
+      setError('Dein Konto ist noch keinem Betrieb zugeordnet.')
+      return
+    }
     try {
-      await createEvent({ ...newEvent, created_by: user.id })
+      await createEvent({ ...newEvent, organization_id: organization.id, created_by: user.id })
       setNewEvent({ title: '', description: '', status: 'draft' })
       setShowCreateEvent(false)
       await loadData()

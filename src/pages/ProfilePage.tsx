@@ -10,7 +10,7 @@ import Badge from '../components/ui/Badge'
 import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, formatShiftStartDate, getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
 
 export default function ProfilePage() {
-  const { profile, user, refreshProfile } = useAuth()
+  const { profile, user, isAdmin, refreshProfile } = useAuth()
   const { theme, setTheme } = useTheme()
   const currentShift = getCurrentShift(profile?.shift_start_date)
 
@@ -58,7 +58,7 @@ export default function ProfilePage() {
           <h1 className="text-xl font-bold text-gray-900">{profile?.display_name ?? 'Mein Profil'}</h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-gray-500">{user?.email}</span>
-            {profile?.role === 'admin' && <Badge variant="purple">Admin</Badge>}
+            {isAdmin && <Badge variant="purple">Admin</Badge>}
             {currentShift && <Badge variant="green">Heute: {currentShift}</Badge>}
           </div>
         </div>

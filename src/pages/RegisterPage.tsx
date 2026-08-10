@@ -27,8 +27,8 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
-    if (form.password.length < 6) {
-      setError('Passwort muss mindestens 6 Zeichen lang sein.')
+    if (form.password.length < 8) {
+      setError('Passwort muss mindestens 8 Zeichen lang sein.')
       return
     }
 
@@ -113,7 +113,7 @@ export default function RegisterPage() {
               type="password"
               value={form.password}
               onChange={set('password')}
-              placeholder="Mindestens 6 Zeichen"
+              placeholder="Mindestens 8 Zeichen"
               required
             />
 
@@ -127,7 +127,10 @@ export default function RegisterPage() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-4 text-center text-xs text-gray-500">
+          Nach der Registrierung muss dein Konto einem Betrieb zugeordnet werden.
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-500">
           Bereits ein Konto?{' '}
           <Link to="/login" className="font-medium text-emerald-700 hover:text-emerald-800">
             Anmelden

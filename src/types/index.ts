@@ -17,8 +17,27 @@ export interface Profile {
   created_at: string
 }
 
+export type MembershipStatus = 'active' | 'disabled'
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  timezone: string
+  created_at: string
+}
+
+export interface OrganizationMembership {
+  organization_id: string
+  user_id: string
+  role: UserRole
+  status: MembershipStatus
+  joined_at: string
+}
+
 export interface Event {
   id: string
+  organization_id: string
   title: string
   description: string
   status: EventStatus

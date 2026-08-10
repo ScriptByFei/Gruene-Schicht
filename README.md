@@ -4,23 +4,45 @@ Event-Planungs-App für Firmen im Schichtbetrieb.
 
 ## Setup
 
-1. Supabase-Projekt erstellen unter [supabase.com](https://supabase.com)
-2. `supabase/schema.sql` im Supabase SQL-Editor ausführen
-3. Umgebungsvariablen konfigurieren:
+1. Docker Desktop starten und die lokale Supabase-Umgebung aufbauen:
+
+```bash
+supabase start
+supabase db reset
+```
+
+2. Lokale Umgebungsvariablen konfigurieren:
 
 ```bash
 cp .env.example .env.local
-# VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY eintragen
+# Die lokalen Werte aus `supabase status --output env` eintragen
 ```
 
-4. Abhängigkeiten installieren und Dev-Server starten:
+3. Abhängigkeiten installieren und Dev-Server starten:
 
 ```bash
 npm install
 npm run dev
 ```
 
-5. Ersten Nutzer registrieren, dann in Supabase die `role`-Spalte in `profiles` auf `admin` setzen.
+4. Einen lokalen Testnutzer registrieren und einem Betrieb als Admin zuordnen:
+
+```bash
+npm run make-admin -- name@firma.de
+```
+
+## Umgebungen
+
+- **Lokal:** App und Supabase laufen auf dem eigenen Rechner. Hier finden Entwicklung,
+  Testregistrierungen und Testdaten statt.
+- **Cloud:** Das Supabase-Projekt „Grüne Schicht“ dient bis zur Beta nur als Staging-Umgebung.
+  Öffentliche Registrierungen bleiben deaktiviert.
+- **GitHub:** Pushes und Pull Requests führen nur Tests, Lint und Build aus. Es gibt während der
+  Entwicklung keine automatische Veröffentlichung über GitHub Pages.
+
+Die Cloud-Migrationshistorie entspricht den Dateien in `supabase/migrations`. Vor einer späteren
+Beta-Veröffentlichung werden zuerst Migrationen und Sicherheitsprüfungen angewendet, danach wird
+das Frontend bewusst manuell veröffentlicht.
 
 ## Tech-Stack
 
@@ -41,3 +63,11 @@ npm run dev
 | `/events/:id` | Eingeloggt |
 | `/profile` | Eingeloggt |
 | `/admin` | Nur Admins |
+
+## Qualität
+
+```bash
+npm run lint
+npm test
+npm run build
+```

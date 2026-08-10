@@ -4,8 +4,8 @@ import { ArrowLeft, MapPin, Calendar, MessageSquare } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { getEvent } from '../services/events'
 import { getPollsForEvent } from '../services/polls'
-import { getVotesForPoll, getUserVotesForPoll } from '../services/votes'
-import { getAttendanceForEvent, getUserAttendance, computeAttendanceSummary } from '../services/attendance'
+import { getPollResults, getUserVotesForPoll } from '../services/votes'
+import { getAttendanceSummary, getUserAttendance } from '../services/attendance'
 import { getSuggestionsForEvent } from '../services/suggestions'
 import PollCard from '../components/polls/PollCard'
 import AttendanceSection from '../components/attendance/AttendanceSection'
@@ -13,11 +13,11 @@ import SuggestionsSection from '../components/suggestions/SuggestionsSection'
 import EventStatusBadge from '../components/events/EventStatusBadge'
 import { Card } from '../components/ui/Card'
 import { PageSpinner } from '../components/ui/Spinner'
-import type { Event, Poll, Vote, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus } from '../types'
+import type { Event, Poll, Vote, PollResult, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus } from '../types'
 
 interface PollWithVotes {
   poll: Poll
-  allVotes: Vote[]
+  results: PollResult[]
   userVotes: Vote[]
 }
 
@@ -40,7 +40,7 @@ export default function EventDetailPage() {
     const withVotes = await Promise.all(
       polls.map(async (poll) => ({
         poll,
-        allVotes: await getVotesForPoll(poll.id),
+        results: await getPollResults(poll.id, poll.options ?? []),
         userVotes: await getUserVotesForPoll(poll.id, user.id),
       }))
     )
@@ -49,11 +49,11 @@ export default function EventDetailPage() {
 
   const loadAttendance = useCallback(async () => {
     if (!id || !user) return
-    const [all, mine] = await Promise.all([
-      getAttendanceForEvent(id),
+    const [summary, mine] = await Promise.all([
+      getAttendanceSummary(id),
       getUserAttendance(id, user.id),
     ])
-    setAttendanceSummary(computeAttendanceSummary(all))
+    setAttendanceSummary(summary)
     setAttendance(mine)
   }, [id, user])
 
@@ -158,11 +158,11 @@ export default function EventDetailPage() {
               Umfragen
             </h2>
             <div className="flex flex-col gap-4">
-              {pollsWithVotes.map(({ poll, allVotes, userVotes }) => (
+              {pollsWithVotes.map(({ poll, results, userVotes }) => (
                 <PollCard
                   key={poll.id}
                   poll={poll}
-                  allVotes={allVotes}
+                  results={results}
                   userVotes={userVotes}
                   userId={user!.id}
                   onVoteChange={loadPolls}

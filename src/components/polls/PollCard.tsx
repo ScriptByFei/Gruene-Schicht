@@ -4,24 +4,23 @@ import { Card, CardHeader } from '../ui/Card'
 import Badge from '../ui/Badge'
 import { cn } from '../../lib/cn'
 import type { Poll, Vote, PollResult } from '../../types'
-import { castVote, removeVote, replaceVote, computeResults } from '../../services/votes'
+import { castVote, removeVote, replaceVote } from '../../services/votes'
 
 interface PollCardProps {
   poll: Poll
-  allVotes: Vote[]
+  results: PollResult[]
   userVotes: Vote[]
   userId: string
   onVoteChange: () => void
 }
 
-export default function PollCard({ poll, allVotes, userVotes, userId, onVoteChange }: PollCardProps) {
+export default function PollCard({ poll, results, userVotes, userId, onVoteChange }: PollCardProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const options = poll.options ?? []
-  const results: PollResult[] = computeResults(allVotes, options)
   const userOptionIds = userVotes.map((v) => v.option_id)
-  const totalVotes = allVotes.length
+  const totalVotes = results.reduce((sum, result) => sum + result.count, 0)
 
   const handleSingleChoice = async (optionId: string) => {
     if (!poll.is_open) return

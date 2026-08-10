@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, adminOnly = false }: Props) {
-  const { session, profile, loading } = useAuth()
+  const { session, isAdmin, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, adminOnly = false }: Props) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (adminOnly && profile?.role !== 'admin') {
+  if (adminOnly && !isAdmin) {
     return <Navigate to="/dashboard" replace />
   }
 

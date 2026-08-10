@@ -1,28 +1,32 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPage'
-import CalendarPage from './pages/CalendarPage'
-import EventDetailPage from './pages/EventDetailPage'
-import ProfilePage from './pages/ProfilePage'
-import AdminPage from './pages/AdminPage'
+import { PageSpinner } from './components/ui/Spinner'
+
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ThemeProvider>
         <AuthProvider>
-          <Routes>
-          {/* Public */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Suspense fallback={<PageSpinner />}>
+            <Routes>
+            {/* Public */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected */}
-          <Route
+            {/* Protected */}
+            <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
@@ -32,7 +36,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+            <Route
             path="/calendar"
             element={
               <ProtectedRoute>
@@ -42,7 +46,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+            <Route
             path="/events/:id"
             element={
               <ProtectedRoute>
@@ -52,7 +56,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+            <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -62,7 +66,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+            <Route
             path="/admin"
             element={
               <ProtectedRoute adminOnly>
@@ -73,9 +77,10 @@ export default function App() {
             }
           />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
