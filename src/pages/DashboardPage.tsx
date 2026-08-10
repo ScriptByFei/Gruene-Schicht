@@ -12,6 +12,13 @@ import { getLocalDateKey } from '../lib/dateTime'
 import type { Event, EventAttendance, ShiftOverride } from '../types'
 import AccessRequestCard from '../components/onboarding/AccessRequestCard'
 import UpcomingShifts from '../components/shifts/UpcomingShifts'
+import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
+
+interface DashboardCache {
+  events: Event[]
+  attendanceMap: Record<string, EventAttendance>
+  shiftOverrides: ShiftOverride[]
+}
 
 export default function DashboardPage() {
   const { profile, user, organization, shiftGroup } = useAuth()
@@ -39,22 +46,38 @@ export default function DashboardPage() {
               )
             : Promise.resolve([]),
         ])
-        setEvents(evts)
-        setShiftOverrides(nextOverrides)
-
+        const nextAttendanceMap: Record<string, EventAttendance> = {}
         if (userId && evts.length > 0) {
           const allAttendance = await getUserAttendanceForEvents(
             evts.map((event) => event.id),
             userId
           )
-          const map: Record<string, EventAttendance> = {}
           allAttendance.forEach((record) => {
-            map[record.event_id] = record
+            nextAttendanceMap[record.event_id] = record
           })
-          setAttendanceMap(map)
+        }
+        setEvents(evts)
+        setShiftOverrides(nextOverrides)
+        setAttendanceMap(nextAttendanceMap)
+        if (userId) {
+          writeOfflineCache<DashboardCache>(
+            userId,
+            `dashboard:${organizationId ?? 'none'}`,
+            { events: evts, attendanceMap: nextAttendanceMap, shiftOverrides: nextOverrides }
+          )
         }
       } catch {
-        setError('Events konnten nicht geladen werden.')
+        const cached = userId
+          ? readOfflineCache<DashboardCache>(userId, `dashboard:${organizationId ?? 'none'}`)
+          : null
+        if (cached) {
+          setEvents(cached.events)
+          setAttendanceMap(cached.attendanceMap)
+          setShiftOverrides(cached.shiftOverrides)
+          setError('Offline – zuletzt synchronisierte Übersicht wird angezeigt.')
+        } else {
+          setError('Events konnten nicht geladen werden.')
+        }
       } finally {
         setLoading(false)
       }
@@ -90,7 +113,7 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <p className="mb-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{error}</p>
       )}
 
       {!organization && user && <AccessRequestCard userId={user.id} />}

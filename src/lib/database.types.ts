@@ -122,6 +122,60 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          link: string
+          organization_id: string
+          read_at: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          link: string
+          organization_id: string
+          read_at?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string
+          organization_id?: string
+          read_at?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+        ]
+      }
       organization_access_requests: {
         Row: {
           id: string
@@ -651,6 +705,15 @@ export type Database = {
           total: number
         }[]
       }
+      get_event_attendee_roster: {
+        Args: { p_event_id: string }
+        Returns: {
+          display_name: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_poll_results: {
         Args: { p_poll_id: string }
         Returns: {
@@ -688,6 +751,7 @@ export type Database = {
       attendance_status: "attending" | "maybe" | "declined"
       event_status: "draft" | "active" | "closed"
       membership_status: "active" | "disabled"
+      notification_type: "event" | "poll" | "shift_request" | "suggestion"
       poll_type: "single_choice" | "multiple_choice"
       shift_override_kind: "absence" | "swap"
       shift_request_status:
@@ -833,6 +897,7 @@ export const Constants = {
       attendance_status: ["attending", "maybe", "declined"],
       event_status: ["draft", "active", "closed"],
       membership_status: ["active", "disabled"],
+      notification_type: ["event", "poll", "shift_request", "suggestion"],
       poll_type: ["single_choice", "multiple_choice"],
       shift_override_kind: ["absence", "swap"],
       shift_request_status: [

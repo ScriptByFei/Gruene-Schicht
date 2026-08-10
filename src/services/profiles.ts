@@ -6,8 +6,8 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
-  if (error) return null
+    .maybeSingle()
+  if (error) throw error
   return data as Profile
 }
 

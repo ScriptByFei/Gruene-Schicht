@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, HelpCircle, X } from 'lucide-react'
 import { Card, CardHeader } from '../ui/Card'
 import { cn } from '../../lib/cn'
-import type { AttendanceStatus, AttendanceSummary } from '../../types'
+import type { AttendanceStatus, AttendanceSummary, EventAttendee } from '../../types'
 import { setAttendance } from '../../services/attendance'
 
 const options: { status: AttendanceStatus; label: string; icon: typeof Check; color: string; active: string }[] = [
@@ -36,6 +36,7 @@ interface AttendanceSectionProps {
   summary: AttendanceSummary
   onStatusChange: (status: AttendanceStatus) => void
   eventClosed?: boolean
+  attendees: EventAttendee[]
 }
 
 export default function AttendanceSection({
@@ -45,6 +46,7 @@ export default function AttendanceSection({
   summary,
   onStatusChange,
   eventClosed,
+  attendees,
 }: AttendanceSectionProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -100,6 +102,38 @@ export default function AttendanceSection({
           <div className="text-xs text-red-600">Abgesagt</div>
         </div>
       </div>
+
+      {attendees.length > 0 && (
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Rückmeldungen
+          </p>
+          <ul className="flex flex-col gap-2" aria-label="Teilnahmerückmeldungen">
+            {attendees.map((attendee) => (
+              <li key={attendee.user_id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
+                    {attendee.display_name.trim().slice(0, 1).toLocaleUpperCase('de-DE') || '?'}
+                  </span>
+                  <span className="truncate font-medium text-gray-800">{attendee.display_name}</span>
+                </span>
+                <span className={cn(
+                  'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
+                  attendee.status === 'attending' && 'bg-emerald-100 text-emerald-800',
+                  attendee.status === 'maybe' && 'bg-amber-100 text-amber-800',
+                  attendee.status === 'declined' && 'bg-red-100 text-red-800'
+                )}>
+                  {attendee.status === 'attending'
+                    ? 'Dabei'
+                    : attendee.status === 'maybe'
+                      ? 'Vielleicht'
+                      : 'Abgesagt'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       {eventClosed && (

@@ -1,9 +1,12 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ArrowLeftRight, CalendarDays, LayoutDashboard, LogOut, Settings, User } from 'lucide-react'
+import { ArrowLeftRight, Bell, CalendarDays, LayoutDashboard, LogOut, Settings, User, WifiOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/useAuth'
 import { cn } from '../../lib/cn'
 import ThemeToggle from '../ui/ThemeToggle'
+import { useNotifications } from '../../contexts/useNotifications'
+import { useOnlineStatus } from '../../hooks/useOnlineStatus'
+import { clearOfflineCache } from '../../lib/offlineCache'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,10 +19,13 @@ const adminNavItems = [
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, user } = useAuth()
+  const { unreadCount } = useNotifications()
+  const isOnline = useOnlineStatus()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
+    if (user) clearOfflineCache(user.id)
     await supabase.auth.signOut()
     navigate('/login')
   }
@@ -66,6 +72,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1">
             <ThemeToggle showLabel={false} />
             <Link
+              to="/notifications"
+              aria-label={unreadCount > 0 ? `${unreadCount} ungelesene Benachrichtigungen` : 'Benachrichtigungen öffnen'}
+              className="relative flex items-center justify-center rounded-lg p-2 text-gray-600 transition-all hover:bg-gray-100/70 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white"
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            <Link
               to="/profile"
               aria-label="Profil öffnen"
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100/70 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700/50 transition-all"
@@ -84,6 +102,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+
+      {!isOnline && (
+        <div className="sticky top-14 z-20 flex items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200" role="status">
+          <WifiOff className="h-3.5 w-3.5" />
+          Offline – zuletzt synchronisierte Daten werden angezeigt.
+        </div>
+      )}
 
       {/* Mobile Bottom Nav */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/30 dark:border-emerald-900/25 z-30">

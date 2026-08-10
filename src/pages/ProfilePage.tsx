@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { User } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Download, Smartphone, User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { useTheme } from '../contexts/useTheme'
 import { updateProfile } from '../services/profiles'
@@ -8,6 +8,11 @@ import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
 
 export default function ProfilePage() {
   const { profile, user, isAdmin, shiftGroup, refreshProfile } = useAuth()
@@ -21,6 +26,35 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isInstalled, setIsInstalled] = useState(
+    () => window.matchMedia('(display-mode: standalone)').matches
+  )
+
+  useEffect(() => {
+    const handleInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+    const handleInstalled = () => {
+      setInstallPrompt(null)
+      setIsInstalled(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const choice = await installPrompt.userChoice
+    if (choice.outcome === 'accepted') setInstallPrompt(null)
+  }
 
   const set = (key: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -122,6 +156,32 @@ export default function ProfilePage() {
             Dark Mode
           </Button>
         </div>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader
+          title="App auf dem Gerät"
+          subtitle="Schneller öffnen und bereits synchronisierte Schichten auch offline ansehen."
+        />
+        <div className="mt-5 flex items-start gap-3 rounded-xl bg-emerald-50 px-4 py-3">
+          <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-emerald-900">
+              {isInstalled ? 'Grüne Schicht ist installiert.' : 'Als App installieren'}
+            </p>
+            {!isInstalled && !installPrompt && (
+              <p className="mt-1 text-xs text-emerald-700">
+                Öffne das Browser-Menü und wähle „Zum Home-Bildschirm“ oder „App installieren“.
+              </p>
+            )}
+          </div>
+        </div>
+        {installPrompt && !isInstalled && (
+          <Button className="mt-4" fullWidth onClick={() => void handleInstall()}>
+            <Download className="h-4 w-4" />
+            App installieren
+          </Button>
+        )}
       </Card>
     </div>
   )

@@ -5,6 +5,16 @@ import { supabase } from '../lib/supabase'
 import { getProfile } from '../services/profiles'
 import { getPrimaryOrganization } from '../services/organizations'
 import { AuthContext } from './auth-context'
+import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
+
+interface CachedIdentity {
+  profile: Profile | null
+  membership: OrganizationMembership | null
+  organization: Organization | null
+  shiftGroup: ShiftGroup | null
+}
+
+const IDENTITY_CACHE_KEY = 'identity'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -15,14 +25,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadIdentity = async (userId: string) => {
-    const [nextProfile, organizationContext] = await Promise.all([
-      getProfile(userId),
-      getPrimaryOrganization(userId),
-    ])
-    setProfile(nextProfile)
-    setMembership(organizationContext?.membership ?? null)
-    setOrganization(organizationContext?.organization ?? null)
-    setShiftGroup(organizationContext?.shiftGroup ?? null)
+    try {
+      const [nextProfile, organizationContext] = await Promise.all([
+        getProfile(userId),
+        getPrimaryOrganization(userId),
+      ])
+      const identity: CachedIdentity = {
+        profile: nextProfile,
+        membership: organizationContext?.membership ?? null,
+        organization: organizationContext?.organization ?? null,
+        shiftGroup: organizationContext?.shiftGroup ?? null,
+      }
+      setProfile(identity.profile)
+      setMembership(identity.membership)
+      setOrganization(identity.organization)
+      setShiftGroup(identity.shiftGroup)
+      writeOfflineCache(userId, IDENTITY_CACHE_KEY, identity)
+    } catch (error) {
+      const cached = readOfflineCache<CachedIdentity>(userId, IDENTITY_CACHE_KEY)
+      if (!cached) throw error
+      setProfile(cached.profile)
+      setMembership(cached.membership)
+      setOrganization(cached.organization)
+      setShiftGroup(cached.shiftGroup)
+    }
   }
 
   const refreshProfile = async () => {
@@ -35,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session?.user) {
-        loadIdentity(session.user.id).finally(() => setLoading(false))
+        void loadIdentity(session.user.id)
+          .catch(() => undefined)
+          .finally(() => setLoading(false))
       } else {
         setLoading(false)
       }
@@ -45,7 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       if (session?.user) {
         setLoading(true)
-        void loadIdentity(session.user.id).finally(() => setLoading(false))
+        void loadIdentity(session.user.id)
+          .catch(() => undefined)
+          .finally(() => setLoading(false))
       } else {
         setProfile(null)
         setMembership(null)

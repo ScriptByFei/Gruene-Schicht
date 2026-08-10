@@ -12,7 +12,7 @@ Benachrichtigungen und bereiten die Veröffentlichung vor.
 | 2 | Abgeschlossen | Kontrolliertes Onboarding, Admin-Freigabe und Mitgliederverwaltung |
 | 3 | Abgeschlossen | Strukturierte Eventtermine, Schichtkalender und persönliche Termin-/Schichtansicht |
 | 4 | Abgeschlossen | Schichtabweichungen, Abwesenheiten und Tauschanfragen mit Freigabeworkflow |
-| 5 | Offen | Benachrichtigungen, PWA/Offline-Nutzung und Feinschliff der Eventzusammenarbeit |
+| 5 | Abgeschlossen | Datensparsame In-App-Benachrichtigungen, installierbare PWA, Offline-Kalender und Teilnehmerübersicht |
 | 6 | Offen | Beta-Härtung, Datenschutz, Monitoring, Egress-Schutz und bewusste Veröffentlichung |
 
 Die App bleibt bis Phase 6 unveröffentlicht. Das Supabase-Cloudprojekt dient bis dahin als

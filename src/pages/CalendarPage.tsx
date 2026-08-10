@@ -13,6 +13,12 @@ import { getScheduledEventsForRange } from '../services/events'
 import { getShiftOverrides } from '../services/shiftRequests'
 import { formatEventSchedule, getDateKeyInTimeZone, getLocalDateKey } from '../lib/dateTime'
 import type { Event, ShiftOverride } from '../types'
+import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
+
+interface CalendarCache {
+  events: Event[]
+  shiftOverrides: ShiftOverride[]
+}
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
 const calendarDayFormatter = new Intl.DateTimeFormat('de-DE', {
@@ -198,6 +204,7 @@ export default function CalendarPage() {
   const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventsError, setEventsError] = useState('')
+  const [usingCachedData, setUsingCachedData] = useState(false)
 
   const [year, setYear] = useState(today.getFullYear())
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>({
@@ -250,9 +257,27 @@ export default function CalendarPage() {
         if (!cancelled) {
           setEvents(nextEvents)
           setShiftOverrides(nextOverrides)
+          setUsingCachedData(false)
+          writeOfflineCache<CalendarCache>(userId, `calendar:${organizationId}:${year}`, {
+            events: nextEvents,
+            shiftOverrides: nextOverrides,
+          })
         }
       } catch {
-        if (!cancelled) setEventsError('Kalenderdaten konnten nicht vollständig geladen werden.')
+        if (!cancelled) {
+          const cached = readOfflineCache<CalendarCache>(
+            userId,
+            `calendar:${organizationId}:${year}`
+          )
+          if (cached) {
+            setEvents(cached.events)
+            setShiftOverrides(cached.shiftOverrides)
+            setUsingCachedData(true)
+            setEventsError('Offline – zuletzt synchronisierte Kalenderdaten werden angezeigt.')
+          } else {
+            setEventsError('Kalenderdaten konnten nicht vollständig geladen werden.')
+          }
+        }
       } finally {
         if (!cancelled) setEventsLoading(false)
       }
@@ -332,7 +357,10 @@ export default function CalendarPage() {
       )}
 
       {eventsError && (
-        <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{eventsError}</p>
+        <p className={cn(
+          'mb-4 rounded-xl px-4 py-3 text-sm',
+          usingCachedData ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-600'
+        )}>{eventsError}</p>
       )}
 
       {/* Jahr-Navigation */}
