@@ -27,6 +27,7 @@ export type ShiftRequestStatus =
   | 'rejected'
   | 'cancelled'
 export type ShiftOverrideKind = 'absence' | 'swap'
+export type NotificationType = 'event' | 'poll' | 'shift_request' | 'suggestion'
 
 export type ShiftGroupColor = 'red' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray'
 
@@ -162,6 +163,26 @@ export interface EventAttendance {
   status: AttendanceStatus
   created_at: string
   updated_at: string
+}
+
+export interface EventAttendee {
+  user_id: string
+  display_name: string
+  status: AttendanceStatus
+  updated_at: string
+}
+
+export interface AppNotification {
+  id: string
+  organization_id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string
+  link: string
+  actor_user_id: string | null
+  read_at: string | null
+  created_at: string
 }
 
 export interface Suggestion {

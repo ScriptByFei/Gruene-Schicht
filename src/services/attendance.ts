@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { AttendanceSummary, AttendanceStatus, EventAttendance } from '../types'
+import type { AttendanceSummary, AttendanceStatus, EventAttendance, EventAttendee } from '../types'
 
 export async function getUserAttendanceForEvents(
   eventIds: string[],
@@ -29,6 +29,14 @@ export async function getAttendanceSummary(eventId: string): Promise<AttendanceS
     declined: Number(summary?.declined ?? 0),
     total: Number(summary?.total ?? 0),
   }
+}
+
+export async function getEventAttendeeRoster(eventId: string): Promise<EventAttendee[]> {
+  const { data, error } = await supabase.rpc('get_event_attendee_roster', {
+    p_event_id: eventId,
+  })
+  if (error) throw error
+  return (data ?? []) as EventAttendee[]
 }
 
 export async function getUserAttendance(

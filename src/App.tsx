@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
 import { PageSpinner } from './components/ui/Spinner'
@@ -14,14 +15,16 @@ const ShiftRequestsPage = lazy(() => import('./pages/ShiftRequestsPage'))
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ThemeProvider>
         <AuthProvider>
-          <Suspense fallback={<PageSpinner />}>
-            <Routes>
+          <NotificationProvider>
+            <Suspense fallback={<PageSpinner />}>
+              <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -68,6 +71,16 @@ export default function App() {
             }
           />
             <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <NotificationsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+            <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -90,8 +103,9 @@ export default function App() {
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </Suspense>
+              </Routes>
+            </Suspense>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

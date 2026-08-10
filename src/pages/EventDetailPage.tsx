@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/useAuth'
 import { getEvent } from '../services/events'
 import { getPollsForEvent } from '../services/polls'
 import { getPollResults, getUserVotesForPoll } from '../services/votes'
-import { getAttendanceSummary, getUserAttendance } from '../services/attendance'
+import { getAttendanceSummary, getEventAttendeeRoster, getUserAttendance } from '../services/attendance'
 import { getSuggestionsForEvent } from '../services/suggestions'
 import { getShiftOverrides } from '../services/shiftRequests'
 import PollCard from '../components/polls/PollCard'
@@ -14,7 +14,7 @@ import SuggestionsSection from '../components/suggestions/SuggestionsSection'
 import EventStatusBadge from '../components/events/EventStatusBadge'
 import { Card } from '../components/ui/Card'
 import { PageSpinner } from '../components/ui/Spinner'
-import type { Event, Poll, Vote, PollResult, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus, ShiftOverride } from '../types'
+import type { Event, Poll, Vote, PollResult, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus, ShiftOverride, EventAttendee } from '../types'
 import { formatEventSchedule, getDateKeyInTimeZone } from '../lib/dateTime'
 import { getEffectiveShiftInfoForDate } from '../lib/shifts'
 
@@ -36,6 +36,7 @@ export default function EventDetailPage() {
   const [pollsWithVotes, setPollsWithVotes] = useState<PollWithVotes[]>([])
   const [attendance, setAttendance] = useState<EventAttendance | null>(null)
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary>({ attending: 0, maybe: 0, declined: 0, total: 0 })
+  const [attendees, setAttendees] = useState<EventAttendee[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [eventOverride, setEventOverride] = useState<ShiftOverride | null>(null)
   const [loading, setLoading] = useState(true)
@@ -56,12 +57,14 @@ export default function EventDetailPage() {
 
   const loadAttendance = useCallback(async () => {
     if (!id || !userId) return
-    const [summary, mine] = await Promise.all([
+    const [summary, mine, roster] = await Promise.all([
       getAttendanceSummary(id),
       getUserAttendance(id, userId),
+      getEventAttendeeRoster(id),
     ])
     setAttendanceSummary(summary)
     setAttendance(mine)
+    setAttendees(roster)
   }, [id, userId])
 
   const loadSuggestions = useCallback(async () => {
@@ -243,6 +246,7 @@ export default function EventDetailPage() {
             userId={user!.id}
             currentStatus={(attendance?.status as AttendanceStatus) ?? null}
             summary={attendanceSummary}
+            attendees={attendees}
             onStatusChange={(status) => {
               setAttendance((prev) => prev
                 ? { ...prev, status }
