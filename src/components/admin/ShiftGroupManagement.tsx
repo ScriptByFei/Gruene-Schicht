@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Pencil, Plus, Trash2, UserRoundCheck, UserX, Users } from 'lucide-react'
+import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import { Card, CardHeader } from '../ui/Card'
 import { Input, Select } from '../ui/Input'
@@ -10,6 +11,8 @@ import {
   deleteShiftGroup,
   getOrganizationMembers,
   getShiftGroups,
+  updateMemberRole,
+  updateMemberStatus,
   updateShiftGroup,
   type ShiftGroupInput,
 } from '../../services/shiftGroups'
@@ -45,11 +48,15 @@ const emptyForm = (sortOrder: number): ShiftGroupInput => ({
 
 interface ShiftGroupManagementProps {
   organizationId: string
+  currentUserId: string
+  refreshKey: number
   onAssignmentChanged: () => Promise<void>
 }
 
 export default function ShiftGroupManagement({
   organizationId,
+  currentUserId,
+  refreshKey,
   onAssignmentChanged,
 }: ShiftGroupManagementProps) {
   const [groups, setGroups] = useState<ShiftGroup[]>([])
@@ -92,7 +99,7 @@ export default function ShiftGroupManagement({
 
     void loadInitialData()
     return () => { cancelled = true }
-  }, [organizationId])
+  }, [organizationId, refreshKey])
 
   const groupOptions = useMemo(() => [
     { value: '', label: 'Noch nicht zugeordnet' },
@@ -170,11 +177,34 @@ export default function ShiftGroupManagement({
     }
   }
 
+  const handleRole = async (member: OrganizationMemberWithProfile, role: 'employee' | 'admin') => {
+    setError('')
+    try {
+      await updateMemberRole(organizationId, member.user_id, role)
+      await loadData()
+    } catch {
+      setError('Rolle konnte nicht geändert werden. Mindestens ein aktiver Admin muss erhalten bleiben.')
+    }
+  }
+
+  const handleStatus = async (member: OrganizationMemberWithProfile) => {
+    const nextStatus = member.status === 'active' ? 'disabled' : 'active'
+    if (nextStatus === 'disabled' && !window.confirm(`${member.display_name} wirklich deaktivieren?`)) return
+
+    setError('')
+    try {
+      await updateMemberStatus(organizationId, member.user_id, nextStatus)
+      await loadData()
+    } catch {
+      setError('Status konnte nicht geändert werden. Mindestens ein aktiver Admin muss erhalten bleiben.')
+    }
+  }
+
   return (
     <Card className="mb-6">
       <CardHeader
         title="Schichtplanung"
-        subtitle="Gruppen und Zuordnungen zentral für Kalender und Dashboard verwalten."
+        subtitle="Gruppen, Rollen und Zugänge zentral verwalten."
         action={
           <Button size="sm" variant="outline" onClick={openCreateForm}>
             <Plus className="h-3.5 w-3.5" />
@@ -257,24 +287,51 @@ export default function ShiftGroupManagement({
           <div className="mt-6 border-t border-gray-100 pt-5">
             <div className="mb-3 flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
-              <h4 className="text-sm font-semibold text-gray-800">Mitarbeitende zuordnen</h4>
+              <h4 className="text-sm font-semibold text-gray-800">Mitarbeitende verwalten</h4>
             </div>
             <div className="flex flex-col gap-2">
               {members.map((member) => (
-                <div key={member.user_id} className="grid items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 sm:grid-cols-[1fr_14rem]">
+                <div key={member.user_id} className="grid items-center gap-2 rounded-xl bg-gray-50 px-3 py-3 lg:grid-cols-[1fr_13rem_9rem_auto]">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
-                    <p className="text-xs text-gray-400">{member.role === 'admin' ? 'Admin' : 'Mitarbeitend'}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
+                      <Badge variant={member.status === 'active' ? 'green' : 'gray'}>
+                        {member.status === 'active' ? 'Aktiv' : 'Deaktiviert'}
+                      </Badge>
+                      {member.user_id === currentUserId && <Badge variant="blue">Du</Badge>}
+                    </div>
                   </div>
                   <Select
                     aria-label={`Schichtgruppe für ${member.display_name}`}
                     value={member.shift_group_id ?? ''}
                     onChange={(event) => handleAssignment(member, event.target.value)}
                     options={groupOptions}
+                    disabled={member.status === 'disabled'}
                   />
+                  <Select
+                    aria-label={`Rolle für ${member.display_name}`}
+                    value={member.role}
+                    onChange={(event) => handleRole(member, event.target.value as 'employee' | 'admin')}
+                    options={[
+                      { value: 'employee', label: 'Mitarbeitend' },
+                      { value: 'admin', label: 'Admin' },
+                    ]}
+                    disabled={member.user_id === currentUserId || member.status === 'disabled'}
+                  />
+                  <Button
+                    size="sm"
+                    variant={member.status === 'active' ? 'ghost' : 'outline'}
+                    className={member.status === 'active' ? 'text-red-600 hover:bg-red-50' : ''}
+                    onClick={() => handleStatus(member)}
+                    disabled={member.user_id === currentUserId}
+                  >
+                    {member.status === 'active'
+                      ? <><UserX className="h-3.5 w-3.5" />Deaktivieren</>
+                      : <><UserRoundCheck className="h-3.5 w-3.5" />Aktivieren</>}
+                  </Button>
                 </div>
               ))}
-              {members.length === 0 && <p className="text-sm text-gray-400">Noch keine aktiven Mitarbeitenden vorhanden.</p>}
+              {members.length === 0 && <p className="text-sm text-gray-400">Noch keine Mitarbeitenden vorhanden.</p>}
             </div>
           </div>
         </>

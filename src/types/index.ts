@@ -18,6 +18,7 @@ export interface Profile {
 }
 
 export type MembershipStatus = 'active' | 'disabled'
+export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
 
 export type ShiftGroupColor = 'red' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray'
 
@@ -51,6 +52,21 @@ export interface ShiftGroup {
 }
 
 export interface OrganizationMemberWithProfile extends OrganizationMembership {
+  display_name: string
+}
+
+export interface OrganizationAccessRequest {
+  id: string
+  organization_id: string
+  user_id: string
+  status: AccessRequestStatus
+  requested_at: string
+  reviewed_at: string | null
+  reviewed_by: string | null
+  reviewed_shift_group_id: string | null
+}
+
+export interface OrganizationAccessRequestWithProfile extends OrganizationAccessRequest {
   display_name: string
 }
 

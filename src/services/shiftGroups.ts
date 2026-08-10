@@ -32,7 +32,6 @@ export async function getOrganizationMembers(
     .from('organization_members')
     .select('*')
     .eq('organization_id', organizationId)
-    .eq('status', 'active')
     .order('joined_at')
 
   if (membershipError) throw membershipError
@@ -85,6 +84,34 @@ export async function assignMemberShiftGroup(
   const { error } = await supabase
     .from('organization_members')
     .update({ shift_group_id: shiftGroupId })
+    .eq('organization_id', organizationId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
+export async function updateMemberRole(
+  organizationId: string,
+  userId: string,
+  role: 'employee' | 'admin'
+): Promise<void> {
+  const { error } = await supabase
+    .from('organization_members')
+    .update({ role })
+    .eq('organization_id', organizationId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
+export async function updateMemberStatus(
+  organizationId: string,
+  userId: string,
+  status: 'active' | 'disabled'
+): Promise<void> {
+  const { error } = await supabase
+    .from('organization_members')
+    .update({ status })
     .eq('organization_id', organizationId)
     .eq('user_id', userId)
 

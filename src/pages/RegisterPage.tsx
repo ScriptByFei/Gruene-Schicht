@@ -113,7 +113,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-gray-500">
-          Nach der Registrierung ordnet ein Admin dein Konto einem Betrieb und einer Schichtgruppe zu.
+          Nach der Registrierung kannst du im Dashboard Betriebszugang anfragen. Ein Admin prüft anschließend deine Schichtgruppe.
         </p>
         <p className="mt-2 text-center text-sm text-gray-500">
           Bereits ein Konto?{' '}

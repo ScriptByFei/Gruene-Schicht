@@ -8,6 +8,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
 import { getCurrentShift } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
+import AccessRequestCard from '../components/onboarding/AccessRequestCard'
 
 export default function DashboardPage() {
   const { profile, user, organization, shiftGroup } = useAuth()
@@ -65,14 +66,7 @@ export default function DashboardPage() {
         <p className="mb-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
       )}
 
-      {!organization && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-900">Betriebszugang ausstehend</p>
-          <p className="mt-1 text-xs text-amber-700">
-            Dein Konto ist registriert, wurde aber noch keinem Betrieb zugeordnet.
-          </p>
-        </div>
-      )}
+      {!organization && user && <AccessRequestCard userId={user.id} />}
 
       {/* Active Events */}
       <section className="mb-8">
