@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import { getCurrentShift } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 import AccessRequestCard from '../components/onboarding/AccessRequestCard'
+import UpcomingShifts from '../components/shifts/UpcomingShifts'
 
 export default function DashboardPage() {
   const { profile, user, organization, shiftGroup } = useAuth()
@@ -67,6 +68,8 @@ export default function DashboardPage() {
       )}
 
       {!organization && user && <AccessRequestCard userId={user.id} />}
+
+      {shiftGroup && <UpcomingShifts shiftGroup={shiftGroup} />}
 
       {/* Active Events */}
       <section className="mb-8">

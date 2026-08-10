@@ -54,11 +54,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          ends_at: string | null
           final_date: string | null
           final_location: string | null
           final_note: string | null
           id: string
           organization_id: string
+          starts_at: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
         }
@@ -66,11 +68,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          ends_at?: string | null
           final_date?: string | null
           final_location?: string | null
           final_note?: string | null
           id?: string
           organization_id: string
+          starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title: string
         }
@@ -78,11 +82,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          ends_at?: string | null
           final_date?: string | null
           final_location?: string | null
           final_note?: string | null
           id?: string
           organization_id?: string
+          starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
         }

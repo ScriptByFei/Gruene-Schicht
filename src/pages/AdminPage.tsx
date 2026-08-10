@@ -15,6 +15,7 @@ import type { Event, EventStatus, Poll, AttendanceSummary, Suggestion, PollType 
 import { cn } from '../lib/cn'
 import ShiftGroupManagement from '../components/admin/ShiftGroupManagement'
 import AccessRequestManagement from '../components/admin/AccessRequestManagement'
+import { formatEventSchedule, fromDateTimeLocalValue, toDateTimeLocalValue } from '../lib/dateTime'
 
 interface EventWithData {
   event: Event
@@ -45,7 +46,12 @@ export default function AdminPage() {
   const [newPoll, setNewPoll] = useState({ title: '', description: '', type: 'single_choice' as PollType, optionsText: '' })
 
   // Final decision form
-  const [finalForm, setFinalForm] = useState({ final_location: '', final_date: '', final_note: '' })
+  const [finalForm, setFinalForm] = useState({
+    final_location: '',
+    starts_at: '',
+    ends_at: '',
+    final_note: '',
+  })
 
   const loadData = useCallback(async () => {
     const events = await getAllEvents()
@@ -167,10 +173,24 @@ export default function AdminPage() {
 
   const handleSaveFinal = async (e: FormEvent, eventId: string) => {
     e.preventDefault()
+    const startsAt = fromDateTimeLocalValue(finalForm.starts_at)
+    const endsAt = fromDateTimeLocalValue(finalForm.ends_at)
+
+    if (finalForm.ends_at && !startsAt) {
+      setError('Für ein Ende muss zuerst ein Beginn festgelegt werden.')
+      return
+    }
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setError('Das Ende muss nach dem Beginn liegen.')
+      return
+    }
+
     try {
       await updateEvent(eventId, {
         final_location: finalForm.final_location || null,
-        final_date: finalForm.final_date || null,
+        final_date: null,
+        starts_at: startsAt,
+        ends_at: endsAt,
         final_note: finalForm.final_note || null,
       })
       setShowFinalForm(null)
@@ -513,17 +533,18 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {/* Final Decision */}
+                  {/* Schedule and location */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-xs font-medium text-gray-500">Finale Entscheidung</p>
+                      <p className="text-xs font-medium text-gray-500">Termin &amp; Treffpunkt</p>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => {
                           setFinalForm({
                             final_location: event.final_location ?? '',
-                            final_date: event.final_date ?? '',
+                            starts_at: toDateTimeLocalValue(event.starts_at),
+                            ends_at: toDateTimeLocalValue(event.ends_at),
                             final_note: event.final_note ?? '',
                           })
                           setShowFinalForm(showFinalForm === event.id ? null : event.id)
@@ -542,10 +563,17 @@ export default function AdminPage() {
                           placeholder="z.B. Restaurant Zur Eiche"
                         />
                         <Input
-                          label="Datum / Zeit"
-                          value={finalForm.final_date}
-                          onChange={(e) => setFinalForm((p) => ({ ...p, final_date: e.target.value }))}
-                          placeholder="z.B. Samstag, 15. März 2025 ab 18:00 Uhr"
+                          label="Beginn"
+                          type="datetime-local"
+                          value={finalForm.starts_at}
+                          onChange={(e) => setFinalForm((p) => ({ ...p, starts_at: e.target.value }))}
+                        />
+                        <Input
+                          label="Ende (optional)"
+                          type="datetime-local"
+                          value={finalForm.ends_at}
+                          min={finalForm.starts_at || undefined}
+                          onChange={(e) => setFinalForm((p) => ({ ...p, ends_at: e.target.value }))}
                         />
                         <Textarea
                           label="Hinweis"
@@ -562,14 +590,22 @@ export default function AdminPage() {
                       </form>
                     ) : (
                       <div className="text-sm text-gray-600">
-                        {event.final_location || event.final_date || event.final_note ? (
+                        {event.final_location || event.starts_at || event.final_date || event.final_note ? (
                           <div className="flex flex-col gap-1">
                             {event.final_location && <span>📍 {event.final_location}</span>}
-                            {event.final_date && <span>📅 {event.final_date}</span>}
+                            {(event.starts_at || event.final_date) && (
+                              <span>
+                                📅 {formatEventSchedule(
+                                  event.starts_at,
+                                  event.ends_at,
+                                  organization?.timezone
+                                ) ?? event.final_date}
+                              </span>
+                            )}
                             {event.final_note && <span>💬 {event.final_note}</span>}
                           </div>
                         ) : (
-                          <p className="text-gray-400 text-xs">Noch keine finale Entscheidung gesetzt</p>
+                          <p className="text-gray-400 text-xs">Noch kein Termin oder Treffpunkt gesetzt</p>
                         )}
                       </div>
                     )}
