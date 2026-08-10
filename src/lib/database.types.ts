@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -333,6 +353,85 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_change_requests: {
+        Row: {
+          admin_response_note: string | null
+          created_at: string
+          id: string
+          note: string | null
+          organization_id: string
+          request_type: Database["public"]["Enums"]["shift_request_type"]
+          requester_date: string
+          requester_user_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["shift_request_status"]
+          target_date: string | null
+          target_responded_at: string | null
+          target_response_note: string | null
+          target_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_response_note?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          request_type: Database["public"]["Enums"]["shift_request_type"]
+          requester_date: string
+          requester_user_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status: Database["public"]["Enums"]["shift_request_status"]
+          target_date?: string | null
+          target_responded_at?: string | null
+          target_response_note?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_response_note?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          request_type?: Database["public"]["Enums"]["shift_request_type"]
+          requester_date?: string
+          requester_user_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["shift_request_status"]
+          target_date?: string | null
+          target_responded_at?: string | null
+          target_response_note?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_change_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_change_requests_organization_id_requester_user_id_fkey"
+            columns: ["organization_id", "requester_user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "shift_change_requests_organization_id_target_user_id_fkey"
+            columns: ["organization_id", "target_user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+        ]
+      }
       shift_groups: {
         Row: {
           anchor_date: string
@@ -374,6 +473,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["shift_override_kind"]
+          organization_id: string
+          shift_date: string
+          shift_symbol: string
+          source_request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["shift_override_kind"]
+          organization_id: string
+          shift_date: string
+          shift_symbol: string
+          source_request_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["shift_override_kind"]
+          organization_id?: string
+          shift_date?: string
+          shift_symbol?: string
+          source_request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_overrides_organization_id_source_request_id_fkey"
+            columns: ["organization_id", "source_request_id"]
+            isOneToOne: false
+            referencedRelation: "shift_change_requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_overrides_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
           },
         ]
       }
@@ -463,6 +617,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_shift_change_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       create_poll_with_options: {
         Args: {
           p_description: string
@@ -470,6 +628,17 @@ export type Database = {
           p_option_labels: string[]
           p_title: string
           p_type: Database["public"]["Enums"]["poll_type"]
+        }
+        Returns: string
+      }
+      create_shift_change_request: {
+        Args: {
+          p_note?: string
+          p_organization_id: string
+          p_request_type: Database["public"]["Enums"]["shift_request_type"]
+          p_requester_date: string
+          p_target_date?: string
+          p_target_user_id?: string
         }
         Returns: string
       }
@@ -497,12 +666,20 @@ export type Database = {
         Args: { p_organization_slug: string }
         Returns: string
       }
+      respond_to_shift_swap: {
+        Args: { p_accept: boolean; p_note?: string; p_request_id: string }
+        Returns: undefined
+      }
       review_organization_access_request: {
         Args: {
           p_approve: boolean
           p_request_id: string
           p_shift_group_id?: string
         }
+        Returns: undefined
+      }
+      review_shift_change_request: {
+        Args: { p_approve: boolean; p_note?: string; p_request_id: string }
         Returns: undefined
       }
     }
@@ -512,6 +689,14 @@ export type Database = {
       event_status: "draft" | "active" | "closed"
       membership_status: "active" | "disabled"
       poll_type: "single_choice" | "multiple_choice"
+      shift_override_kind: "absence" | "swap"
+      shift_request_status:
+        | "pending_target"
+        | "pending_admin"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+      shift_request_type: "absence" | "swap"
       suggestion_status: "pending" | "approved" | "rejected"
       user_role: "employee" | "admin"
     }
@@ -639,6 +824,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       access_request_status: ["pending", "approved", "rejected"],
@@ -646,6 +834,15 @@ export const Constants = {
       event_status: ["draft", "active", "closed"],
       membership_status: ["active", "disabled"],
       poll_type: ["single_choice", "multiple_choice"],
+      shift_override_kind: ["absence", "swap"],
+      shift_request_status: [
+        "pending_target",
+        "pending_admin",
+        "approved",
+        "rejected",
+        "cancelled",
+      ],
+      shift_request_type: ["absence", "swap"],
       suggestion_status: ["pending", "approved", "rejected"],
       user_role: ["employee", "admin"],
     },

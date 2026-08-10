@@ -2,32 +2,50 @@ import { useEffect, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { getActiveEvents } from '../services/events'
+import { getShiftOverrides } from '../services/shiftRequests'
 import { getUserAttendanceForEvents } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
-import { getCurrentShift } from '../lib/shifts'
-import type { Event, EventAttendance } from '../types'
+import { getEffectiveShiftInfoForDate } from '../lib/shifts'
+import { getLocalDateKey } from '../lib/dateTime'
+import type { Event, EventAttendance, ShiftOverride } from '../types'
 import AccessRequestCard from '../components/onboarding/AccessRequestCard'
 import UpcomingShifts from '../components/shifts/UpcomingShifts'
 
 export default function DashboardPage() {
   const { profile, user, organization, shiftGroup } = useAuth()
+  const userId = user?.id
+  const organizationId = organization?.id
   const [events, setEvents] = useState<Event[]>([])
   const [attendanceMap, setAttendanceMap] = useState<Record<string, EventAttendance>>({})
+  const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const load = async () => {
       try {
-        const evts = await getActiveEvents()
+        const today = new Date()
+        const finalDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6)
+        const [evts, nextOverrides] = await Promise.all([
+          getActiveEvents(),
+          userId && organizationId
+            ? getShiftOverrides(
+                organizationId,
+                userId,
+                getLocalDateKey(today),
+                getLocalDateKey(finalDay)
+              )
+            : Promise.resolve([]),
+        ])
         setEvents(evts)
+        setShiftOverrides(nextOverrides)
 
-        if (user && evts.length > 0) {
+        if (userId && evts.length > 0) {
           const allAttendance = await getUserAttendanceForEvents(
             evts.map((event) => event.id),
-            user.id
+            userId
           )
           const map: Record<string, EventAttendance> = {}
           allAttendance.forEach((record) => {
@@ -42,12 +60,20 @@ export default function DashboardPage() {
       }
     }
     load()
-  }, [user])
+  }, [organizationId, userId])
 
   const activeEvents = events.filter((e) => e.status === 'active')
   const closedEvents = events.filter((e) => e.status === 'closed')
 
-  const currentShift = getCurrentShift(shiftGroup?.anchor_date, new Date(), shiftGroup?.pattern)
+  const currentShiftOverride = shiftOverrides.find(
+    (override) => override.shift_date === getLocalDateKey(new Date())
+  )
+  const currentShift = getEffectiveShiftInfoForDate(
+    shiftGroup?.anchor_date,
+    new Date(),
+    shiftGroup?.pattern,
+    currentShiftOverride?.shift_symbol
+  )?.label ?? null
 
   if (loading) return <PageSpinner />
 
@@ -69,7 +95,7 @@ export default function DashboardPage() {
 
       {!organization && user && <AccessRequestCard userId={user.id} />}
 
-      {shiftGroup && <UpcomingShifts shiftGroup={shiftGroup} />}
+      {shiftGroup && <UpcomingShifts shiftGroup={shiftGroup} overrides={shiftOverrides} />}
 
       {/* Active Events */}
       <section className="mb-8">

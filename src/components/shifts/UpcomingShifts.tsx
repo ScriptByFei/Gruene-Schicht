@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { getShiftInfoForDate, type ShiftSymbol } from '../../lib/shifts'
-import type { ShiftGroup } from '../../types'
+import { getEffectiveShiftInfoForDate, type ShiftSymbol } from '../../lib/shifts'
+import { getLocalDateKey } from '../../lib/dateTime'
+import type { ShiftGroup, ShiftOverride } from '../../types'
 
 const symbolClasses: Record<ShiftSymbol, string> = {
   F: 'bg-amber-400 text-white',
@@ -12,13 +13,27 @@ const symbolClasses: Record<ShiftSymbol, string> = {
 }
 const weekdayFormatter = new Intl.DateTimeFormat('de-DE', { weekday: 'short' })
 
-export default function UpcomingShifts({ shiftGroup }: { shiftGroup: ShiftGroup }) {
+export default function UpcomingShifts({
+  shiftGroup,
+  overrides,
+}: {
+  shiftGroup: ShiftGroup
+  overrides: ShiftOverride[]
+}) {
   const today = new Date()
+  const overridesByDate = new Map(overrides.map((override) => [override.shift_date, override]))
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + index)
+    const override = overridesByDate.get(getLocalDateKey(date))
     return {
       date,
-      shift: getShiftInfoForDate(shiftGroup.anchor_date, date, shiftGroup.pattern),
+      shift: getEffectiveShiftInfoForDate(
+        shiftGroup.anchor_date,
+        date,
+        shiftGroup.pattern,
+        override?.shift_symbol
+      ),
+      override,
     }
   })
 
@@ -34,7 +49,7 @@ export default function UpcomingShifts({ shiftGroup }: { shiftGroup: ShiftGroup 
         </Link>
       </div>
       <div className="grid grid-cols-7 gap-1.5">
-        {days.map(({ date, shift }, index) => {
+        {days.map(({ date, shift, override }, index) => {
           const symbol = shift?.symbol ?? '-'
           return (
             <div key={date.toISOString()} className="text-center">
@@ -44,10 +59,16 @@ export default function UpcomingShifts({ shiftGroup }: { shiftGroup: ShiftGroup 
                   : weekdayFormatter.format(date)}
               </p>
               <div className={cn(
-                'flex aspect-square items-center justify-center rounded-lg text-xs font-bold',
+                'relative flex aspect-square items-center justify-center rounded-lg text-xs font-bold',
                 symbolClasses[symbol]
               )}>
                 {symbol === '-' ? '—' : symbol}
+                {override && (
+                  <span
+                    className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-violet-500 ring-1 ring-white"
+                    aria-label={override.kind === 'swap' ? 'Genehmigter Tausch' : 'Genehmigte Abwesenheit'}
+                  />
+                )}
               </div>
               <p className="mt-1 text-[10px] text-gray-400">{date.getDate()}.</p>
             </div>

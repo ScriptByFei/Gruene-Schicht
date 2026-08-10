@@ -7,15 +7,16 @@ import { getPollsForEvent } from '../services/polls'
 import { getPollResults, getUserVotesForPoll } from '../services/votes'
 import { getAttendanceSummary, getUserAttendance } from '../services/attendance'
 import { getSuggestionsForEvent } from '../services/suggestions'
+import { getShiftOverrides } from '../services/shiftRequests'
 import PollCard from '../components/polls/PollCard'
 import AttendanceSection from '../components/attendance/AttendanceSection'
 import SuggestionsSection from '../components/suggestions/SuggestionsSection'
 import EventStatusBadge from '../components/events/EventStatusBadge'
 import { Card } from '../components/ui/Card'
 import { PageSpinner } from '../components/ui/Spinner'
-import type { Event, Poll, Vote, PollResult, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus } from '../types'
-import { formatEventSchedule } from '../lib/dateTime'
-import { getShiftInfoForDate } from '../lib/shifts'
+import type { Event, Poll, Vote, PollResult, EventAttendance, AttendanceSummary, Suggestion, AttendanceStatus, ShiftOverride } from '../types'
+import { formatEventSchedule, getDateKeyInTimeZone } from '../lib/dateTime'
+import { getEffectiveShiftInfoForDate } from '../lib/shifts'
 
 interface PollWithVotes {
   poll: Poll
@@ -27,37 +28,41 @@ export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, isAdmin, organization, shiftGroup } = useAuth()
+  const userId = user?.id
+  const organizationId = organization?.id
+  const organizationTimeZone = organization?.timezone
 
   const [event, setEvent] = useState<Event | null>(null)
   const [pollsWithVotes, setPollsWithVotes] = useState<PollWithVotes[]>([])
   const [attendance, setAttendance] = useState<EventAttendance | null>(null)
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary>({ attending: 0, maybe: 0, declined: 0, total: 0 })
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [eventOverride, setEventOverride] = useState<ShiftOverride | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const loadPolls = useCallback(async () => {
-    if (!id || !user) return
+    if (!id || !userId) return
     const polls = await getPollsForEvent(id)
     const withVotes = await Promise.all(
       polls.map(async (poll) => ({
         poll,
         results: await getPollResults(poll.id, poll.options ?? []),
-        userVotes: await getUserVotesForPoll(poll.id, user.id),
+        userVotes: await getUserVotesForPoll(poll.id, userId),
       }))
     )
     setPollsWithVotes(withVotes)
-  }, [id, user])
+  }, [id, userId])
 
   const loadAttendance = useCallback(async () => {
-    if (!id || !user) return
+    if (!id || !userId) return
     const [summary, mine] = await Promise.all([
       getAttendanceSummary(id),
-      getUserAttendance(id, user.id),
+      getUserAttendance(id, userId),
     ])
     setAttendanceSummary(summary)
     setAttendance(mine)
-  }, [id, user])
+  }, [id, userId])
 
   const loadSuggestions = useCallback(async () => {
     if (!id) return
@@ -78,7 +83,20 @@ export default function EventDetailPage() {
           return
         }
         setEvent(evt)
-        await Promise.all([loadPolls(), loadAttendance(), loadSuggestions()])
+        const eventDateKey = evt.starts_at
+          ? getDateKeyInTimeZone(evt.starts_at, organizationTimeZone)
+          : null
+        const overridePromise = eventDateKey && organizationId && userId
+          ? getShiftOverrides(organizationId, userId, eventDateKey, eventDateKey)
+              .then((overrides) => setEventOverride(overrides[0] ?? null))
+          : Promise.resolve(setEventOverride(null))
+
+        await Promise.all([
+          loadPolls(),
+          loadAttendance(),
+          loadSuggestions(),
+          overridePromise,
+        ])
       } catch {
         setError('Event konnte nicht geladen werden.')
       } finally {
@@ -87,7 +105,16 @@ export default function EventDetailPage() {
     }
 
     void load()
-  }, [id, loadAttendance, loadPolls, loadSuggestions, navigate])
+  }, [
+    id,
+    loadAttendance,
+    loadPolls,
+    loadSuggestions,
+    navigate,
+    organizationId,
+    organizationTimeZone,
+    userId,
+  ])
 
   if (loading) return <PageSpinner />
   if (!event) return null
@@ -98,8 +125,17 @@ export default function EventDetailPage() {
     event.ends_at,
     organization?.timezone
   )
-  const eventShift = event.starts_at
-    ? getShiftInfoForDate(shiftGroup?.anchor_date, new Date(event.starts_at), shiftGroup?.pattern)
+  const eventDateKey = event.starts_at
+    ? getDateKeyInTimeZone(event.starts_at, organizationTimeZone)
+    : null
+  const eventShiftDate = eventDateKey ? new Date(`${eventDateKey}T12:00:00`) : null
+  const eventShift = eventShiftDate
+    ? getEffectiveShiftInfoForDate(
+        shiftGroup?.anchor_date,
+        eventShiftDate,
+        shiftGroup?.pattern,
+        eventOverride?.shift_symbol
+      )
     : null
   const hasFinalInfo = event.final_location || schedule || event.final_date || event.final_note
 
@@ -157,6 +193,13 @@ export default function EventDetailPage() {
                 </span>
                 <span><strong>Deine Schicht:</strong> {eventShift.label}</span>
               </div>
+            )}
+            {eventOverride && (
+              <p className="ml-6 text-xs font-medium text-violet-800">
+                {eventOverride.kind === 'swap'
+                  ? 'Berücksichtigt deinen genehmigten Schichttausch.'
+                  : 'Berücksichtigt deine genehmigte Abwesenheit.'}
+              </p>
             )}
             {event.final_note && (
               <div className="flex items-start gap-2 text-sm text-emerald-900">

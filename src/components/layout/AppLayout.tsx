@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { CalendarDays, LayoutDashboard, LogOut, Settings, User } from 'lucide-react'
+import { ArrowLeftRight, CalendarDays, LayoutDashboard, LogOut, Settings, User } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/useAuth'
 import { cn } from '../../lib/cn'
@@ -8,6 +8,7 @@ import ThemeToggle from '../ui/ThemeToggle'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/calendar', label: 'Kalender', icon: CalendarDays },
+  { to: '/requests', label: 'Anträge', icon: ArrowLeftRight },
 ]
 
 const adminNavItems = [
@@ -86,10 +87,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/30 dark:border-emerald-900/25 z-30">
-        <div className={cn('grid h-16', isAdmin ? 'grid-cols-4' : 'grid-cols-3')}>
+        <div className={cn('grid h-16', isAdmin ? 'grid-cols-5' : 'grid-cols-4')}>
           {[
             { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { to: '/calendar', label: 'Kalender', icon: CalendarDays },
+            { to: '/requests', label: 'Anträge', icon: ArrowLeftRight },
             { to: '/profile', label: 'Profil', icon: User },
             ...(isAdmin ? [{ to: '/admin', label: 'Admin', icon: Settings }] : []),
           ].map(({ to, label, icon: Icon }) => (
