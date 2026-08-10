@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Download, Smartphone, User } from 'lucide-react'
+import { Download, ShieldCheck, Smartphone, Trash2, User } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { useTheme } from '../contexts/useTheme'
 import { updateProfile } from '../services/profiles'
@@ -8,6 +9,9 @@ import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
+import { deleteMyAccount, exportMyData } from '../services/privacy'
+import { clearOfflineCache } from '../lib/offlineCache'
+import { supabase } from '../lib/supabase'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -15,6 +19,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate()
   const { profile, user, isAdmin, shiftGroup, refreshProfile } = useAuth()
   const { theme, setTheme } = useTheme()
   const currentShift = getCurrentShift(shiftGroup?.anchor_date, new Date(), shiftGroup?.pattern)
@@ -30,6 +35,11 @@ export default function ProfilePage() {
   const [isInstalled, setIsInstalled] = useState(
     () => window.matchMedia('(display-mode: standalone)').matches
   )
+  const [exporting, setExporting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteEmail, setDeleteEmail] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [privacyError, setPrivacyError] = useState('')
 
   useEffect(() => {
     const handleInstallPrompt = (event: Event) => {
@@ -54,6 +64,48 @@ export default function ProfilePage() {
     await installPrompt.prompt()
     const choice = await installPrompt.userChoice
     if (choice.outcome === 'accepted') setInstallPrompt(null)
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    setPrivacyError('')
+    try {
+      const data = await exportMyData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `gruene-schicht-daten-${new Date().toISOString().slice(0, 10)}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setPrivacyError('Deine Daten konnten nicht exportiert werden.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!user?.email || deleteEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+      setPrivacyError('Die eingegebene E-Mail-Adresse stimmt nicht überein.')
+      return
+    }
+    setDeleting(true)
+    setPrivacyError('')
+    try {
+      await deleteMyAccount(deleteEmail)
+      clearOfflineCache(user.id)
+      await supabase.auth.signOut({ scope: 'local' })
+      navigate('/login', { replace: true })
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : ''
+      setPrivacyError(message.includes('last organization admin')
+        ? 'Du bist der letzte aktive Admin. Bestimme zuerst einen zweiten Admin.'
+        : 'Das Konto konnte nicht gelöscht werden.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const set = (key: keyof typeof form) =>
@@ -182,6 +234,65 @@ export default function ProfilePage() {
             App installieren
           </Button>
         )}
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader
+          title="Meine Daten"
+          subtitle="Datenkopie herunterladen oder das Konto dauerhaft löschen."
+        />
+        <div className="mt-5 flex items-start gap-3 rounded-xl bg-emerald-50 px-4 py-3 dark:bg-emerald-950/40">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
+          <p className="text-sm text-emerald-900 dark:text-emerald-200">
+            Der Export enthält nur deine eigenen Zuordnungen und Beiträge. Daten anderer Personen werden nicht mit ausgegeben.
+          </p>
+        </div>
+        {privacyError && (
+          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40">
+            {privacyError}
+          </p>
+        )}
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" loading={exporting} onClick={() => void handleExport()}>
+            <Download className="h-4 w-4" />
+            Daten herunterladen
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => setDeleteOpen((open) => !open)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Konto löschen
+          </Button>
+        </div>
+        {deleteOpen && (
+          <form onSubmit={handleDeleteAccount} className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
+            <p className="text-sm font-medium text-red-900 dark:text-red-200">Diese Aktion ist endgültig.</p>
+            <p className="mt-1 text-xs text-red-700 dark:text-red-300">
+              Gib zur Bestätigung deine vollständige E-Mail-Adresse ein. Ein letzter aktiver Betriebsadmin kann nicht gelöscht werden.
+            </p>
+            <Input
+              label="E-Mail zur Bestätigung"
+              type="email"
+              value={deleteEmail}
+              onChange={(event) => setDeleteEmail(event.target.value)}
+              className="mt-3"
+              required
+            />
+            <Button
+              type="submit"
+              loading={deleting}
+              disabled={deleteEmail.trim().toLowerCase() !== user?.email?.toLowerCase()}
+              className="mt-3 bg-red-600 hover:bg-red-700"
+            >
+              Konto endgültig löschen
+            </Button>
+          </form>
+        )}
+        <p className="mt-4 text-xs text-gray-500">
+          Mehr dazu in der <Link to="/privacy" className="font-medium text-emerald-700 hover:underline">Datenschutzerklärung</Link>.
+        </p>
       </Card>
     </div>
   )

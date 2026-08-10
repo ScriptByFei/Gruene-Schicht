@@ -25,9 +25,10 @@ export async function getPollResults(
 export async function getUserVotesForPoll(pollId: string, userId: string): Promise<Vote[]> {
   const { data, error } = await supabase
     .from('votes')
-    .select('*')
+    .select('id, poll_id, option_id, user_id, created_at')
     .eq('poll_id', pollId)
     .eq('user_id', userId)
+    .limit(50)
   if (error) throw error
   return (data ?? []) as Vote[]
 }

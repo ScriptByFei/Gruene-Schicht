@@ -26,9 +26,10 @@ async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> 
 export async function getSuggestionsForEvent(eventId: string): Promise<Suggestion[]> {
   const { data, error } = await supabase
     .from('suggestions')
-    .select('*')
+    .select('id, event_id, user_id, text, status, created_at')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false })
+    .limit(100)
   if (error) throw error
   return attachProfiles((data ?? []) as Suggestion[])
 }
@@ -41,7 +42,7 @@ export async function createSuggestion(
   const { data, error } = await supabase
     .from('suggestions')
     .insert({ event_id: eventId, user_id: userId, text, status: 'pending' })
-    .select()
+    .select('id, event_id, user_id, text, status, created_at')
     .single()
   if (error) throw error
   return data as Suggestion
@@ -61,9 +62,10 @@ export async function updateSuggestionStatus(
 export async function getAllPendingSuggestions(): Promise<Suggestion[]> {
   const { data, error } = await supabase
     .from('suggestions')
-    .select('*')
+    .select('id, event_id, user_id, text, status, created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
+    .limit(100)
   if (error) throw error
   return attachProfiles((data ?? []) as Suggestion[])
 }

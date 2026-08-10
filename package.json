@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run && node --test scripts/check-beta-readiness.node.mjs",
     "preview": "vite preview",
     "make-admin": "node scripts/make-local-user-admin.mjs",
-    "cleanup-test-data": "node scripts/cleanup-local-test-data.mjs"
+    "cleanup-test-data": "node scripts/cleanup-local-test-data.mjs",
+    "beta:check": "node scripts/check-beta-readiness.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.2",

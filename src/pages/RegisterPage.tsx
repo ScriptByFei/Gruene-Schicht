@@ -5,8 +5,31 @@ import { supabase } from '../lib/supabase'
 import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
+import { runtimeConfig } from '../lib/runtimeConfig'
 
 export default function RegisterPage() {
+  if (!runtimeConfig.registrationEnabled) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-slate-950">
+        <div className="mx-auto max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <CalendarDays className="mx-auto h-10 w-10 text-emerald-600" />
+          <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Geschlossene Beta</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Die öffentliche Registrierung ist noch geschlossen. Bestehende Testkonten können sich bereits anmelden.
+          </p>
+          <div className="mt-5 flex justify-center gap-4 text-sm">
+            <Link to="/login" className="font-medium text-emerald-700">Zur Anmeldung</Link>
+            <Link to="/privacy" className="text-gray-500">Datenschutz</Link>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  return <OpenRegistration />
+}
+
+function OpenRegistration() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({

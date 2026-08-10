@@ -34,6 +34,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_error_reports: {
+        Row: {
+          created_at: string
+          error_code: string
+          id: string
+          organization_id: string
+          route: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_code: string
+          id?: string
+          organization_id: string
+          route: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string
+          id?: string
+          organization_id?: string
+          route?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_error_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_error_reports_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+        ]
+      }
       event_attendance: {
         Row: {
           created_at: string
@@ -696,6 +738,22 @@ export type Database = {
         }
         Returns: string
       }
+      delete_my_account: {
+        Args: { p_expected_email: string }
+        Returns: undefined
+      }
+      export_my_data: { Args: never; Returns: Json }
+      get_admin_event_overview: {
+        Args: { p_organization_id: string }
+        Returns: {
+          attending: number
+          declined: number
+          event_id: string
+          maybe: number
+          pending_suggestions: number
+          poll_count: number
+        }[]
+      }
       get_attendance_summary: {
         Args: { p_event_id: string }
         Returns: {
@@ -703,6 +761,20 @@ export type Database = {
           declined: number
           maybe: number
           total: number
+        }[]
+      }
+      get_beta_health: {
+        Args: { p_organization_id: string }
+        Returns: {
+          active_events: number
+          active_members: number
+          client_errors_24h: number
+          client_errors_7d: number
+          database_now: string
+          last_client_error_at: string
+          pending_access_requests: number
+          pending_shift_requests: number
+          unread_notifications: number
         }[]
       }
       get_event_attendee_roster: {
@@ -723,6 +795,10 @@ export type Database = {
       }
       replace_single_vote: {
         Args: { p_option_id: string; p_poll_id: string }
+        Returns: undefined
+      }
+      report_client_error: {
+        Args: { p_error_code: string; p_route: string }
         Returns: undefined
       }
       request_organization_access: {

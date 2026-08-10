@@ -1,13 +1,16 @@
 import { supabase } from '../lib/supabase'
 import type { Event, EventStatus } from '../types'
 
+const EVENT_FIELDS = 'id, organization_id, title, description, status, final_location, final_date, final_note, starts_at, ends_at, created_by, created_at'
+
 export async function getActiveEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(EVENT_FIELDS)
     .in('status', ['active', 'closed'])
     .order('starts_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
+    .limit(50)
   if (error) throw error
   return (data ?? []) as Event[]
 }
@@ -15,8 +18,9 @@ export async function getActiveEvents(): Promise<Event[]> {
 export async function getAllEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(EVENT_FIELDS)
     .order('created_at', { ascending: false })
+    .limit(50)
   if (error) throw error
   return (data ?? []) as Event[]
 }
@@ -24,7 +28,7 @@ export async function getAllEvents(): Promise<Event[]> {
 export async function getEvent(id: string): Promise<Event | null> {
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(EVENT_FIELDS)
     .eq('id', id)
     .single()
   if (error) return null
@@ -37,7 +41,7 @@ export async function createEvent(
   const { data, error } = await supabase
     .from('events')
     .insert(payload)
-    .select()
+    .select(EVENT_FIELDS)
     .single()
   if (error) throw error
   return data as Event
@@ -61,7 +65,7 @@ export async function updateEvent(
     .from('events')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select(EVENT_FIELDS)
     .single()
   if (error) throw error
   return data as Event
@@ -74,13 +78,14 @@ export async function getScheduledEventsForRange(
 ): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(EVENT_FIELDS)
     .eq('organization_id', organizationId)
     .in('status', ['active', 'closed'])
     .not('starts_at', 'is', null)
     .gte('starts_at', rangeStart)
     .lt('starts_at', rangeEnd)
     .order('starts_at')
+    .limit(200)
 
   if (error) throw error
   return (data ?? []) as Event[]

@@ -1,12 +1,16 @@
 import { supabase } from '../lib/supabase'
 import type { Poll, PollOption } from '../types'
 
+const POLL_FIELDS = 'id, event_id, title, description, type, is_open, created_at'
+const OPTION_FIELDS = 'id, poll_id, label, created_at'
+
 export async function getPollsForEvent(eventId: string): Promise<Poll[]> {
   const { data: polls, error: pollsError } = await supabase
     .from('polls')
-    .select('*')
+    .select(POLL_FIELDS)
     .eq('event_id', eventId)
     .order('created_at')
+    .limit(20)
   if (pollsError) throw pollsError
 
   const pollIds = (polls ?? []).map((p) => p.id)
@@ -14,9 +18,10 @@ export async function getPollsForEvent(eventId: string): Promise<Poll[]> {
 
   const { data: options, error: optionsError } = await supabase
     .from('poll_options')
-    .select('*')
+    .select(OPTION_FIELDS)
     .in('poll_id', pollIds)
     .order('created_at')
+    .limit(200)
   if (optionsError) throw optionsError
 
   return (polls ?? []).map((poll) => ({
@@ -40,7 +45,7 @@ export async function createPoll(
 
   const { data: poll, error: pollError } = await supabase
     .from('polls')
-    .select('*')
+    .select(POLL_FIELDS)
     .eq('id', pollId)
     .single()
   if (pollError) throw pollError

@@ -6,6 +6,7 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
 import { PageSpinner } from './components/ui/Spinner'
+import AppErrorBoundary from './components/errors/AppErrorBoundary'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -16,6 +17,7 @@ const EventDetailPage = lazy(() => import('./pages/EventDetailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 
 export default function App() {
   return (
@@ -23,11 +25,13 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
-            <Suspense fallback={<PageSpinner />}>
+            <AppErrorBoundary>
+              <Suspense fallback={<PageSpinner />}>
               <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* Protected */}
             <Route
@@ -104,7 +108,8 @@ export default function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
-            </Suspense>
+              </Suspense>
+            </AppErrorBoundary>
           </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>

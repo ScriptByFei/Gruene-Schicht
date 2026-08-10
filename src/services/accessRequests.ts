@@ -9,7 +9,7 @@ export async function getMyAccessRequest(
 ): Promise<OrganizationAccessRequest | null> {
   const { data, error } = await supabase
     .from('organization_access_requests')
-    .select('*')
+    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -29,10 +29,11 @@ export async function getPendingAccessRequests(
 ): Promise<OrganizationAccessRequestWithProfile[]> {
   const { data: requests, error: requestError } = await supabase
     .from('organization_access_requests')
-    .select('*')
+    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('organization_id', organizationId)
     .eq('status', 'pending')
     .order('requested_at')
+    .limit(100)
 
   if (requestError) throw requestError
   if (!requests?.length) return []
