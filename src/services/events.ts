@@ -6,6 +6,7 @@ export async function getActiveEvents(): Promise<Event[]> {
     .from('events')
     .select('*')
     .in('status', ['active', 'closed'])
+    .order('starts_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as Event[]
@@ -44,7 +45,17 @@ export async function createEvent(
 
 export async function updateEvent(
   id: string,
-  updates: Partial<Pick<Event, 'title' | 'description' | 'status' | 'final_location' | 'final_date' | 'final_note'>>
+  updates: Partial<Pick<
+    Event,
+    | 'title'
+    | 'description'
+    | 'status'
+    | 'final_location'
+    | 'final_date'
+    | 'final_note'
+    | 'starts_at'
+    | 'ends_at'
+  >>
 ): Promise<Event> {
   const { data, error } = await supabase
     .from('events')
@@ -54,6 +65,25 @@ export async function updateEvent(
     .single()
   if (error) throw error
   return data as Event
+}
+
+export async function getScheduledEventsForRange(
+  organizationId: string,
+  rangeStart: string,
+  rangeEnd: string
+): Promise<Event[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .in('status', ['active', 'closed'])
+    .not('starts_at', 'is', null)
+    .gte('starts_at', rangeStart)
+    .lt('starts_at', rangeEnd)
+    .order('starts_at')
+
+  if (error) throw error
+  return (data ?? []) as Event[]
 }
 
 export async function setEventStatus(id: string, status: EventStatus): Promise<void> {

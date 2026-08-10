@@ -79,6 +79,8 @@ export interface Event {
   final_location: string | null
   final_date: string | null
   final_note: string | null
+  starts_at: string | null
+  ends_at: string | null
   created_by: string | null
   created_at: string
 }

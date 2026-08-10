@@ -1,10 +1,18 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CalendarDays, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { cn } from '../lib/cn'
 import { getShiftInfoForDate, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
+import { getScheduledEventsForRange } from '../services/events'
+import { formatEventSchedule, getDateKeyInTimeZone, getLocalDateKey } from '../lib/dateTime'
+import type { Event } from '../types'
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
+const calendarDayFormatter = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: 'long',
+})
 
 const shiftCellClass: Record<ShiftSymbol, string> = {
   F: 'bg-amber-400 text-white',
@@ -71,10 +79,11 @@ const MONTH_NAMES = [
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ]
 
-function DayCell({ day, onSelect, isSelected }: {
+function DayCell({ day, onSelect, isSelected, eventCount }: {
   day: CalendarDay | null
   onSelect: (d: CalendarDay) => void
   isSelected: boolean
+  eventCount: number
 }) {
   if (!day || !day.isCurrentMonth) return <div className="h-8" />
   const symbol = day.shift?.symbol ?? '-'
@@ -83,6 +92,9 @@ function DayCell({ day, onSelect, isSelected }: {
     <button
       type="button"
       onClick={() => onSelect(day)}
+      aria-label={`${calendarDayFormatter.format(day.date)}: ${day.shift?.label ?? 'Keine Schicht'}${
+        eventCount > 0 ? `, ${eventCount} Event${eventCount === 1 ? '' : 's'}` : ''
+      }`}
       className={cn(
         'relative h-8 w-full flex items-center justify-center rounded-sm text-xs font-bold transition-all select-none',
         shiftCellClass[symbol],
@@ -97,14 +109,26 @@ function DayCell({ day, onSelect, isSelected }: {
         </span>
       )}
       {symbol === '-' ? day.date.getDate() : symbol}
+      {eventCount > 0 && (
+        <span
+          className={cn(
+            'absolute bottom-0.5 right-0.5 flex h-2 min-w-2 items-center justify-center rounded-full px-0.5 text-[6px] leading-none',
+            symbol === '-' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-700'
+          )}
+          aria-hidden="true"
+        >
+          {eventCount > 1 ? eventCount : ''}
+        </span>
+      )}
     </button>
   )
 }
 
-function MonthGrid({ month, selectedDate, onSelect }: {
+function MonthGrid({ month, selectedDate, onSelect, eventsByDate }: {
   month: CalendarMonth
   selectedDate: Date | null
   onSelect: (d: CalendarDay) => void
+  eventsByDate: Map<string, Event[]>
 }) {
   return (
     <div>
@@ -131,6 +155,7 @@ function MonthGrid({ month, selectedDate, onSelect }: {
               day={day}
               onSelect={onSelect}
               isSelected={!!day && !!selectedDate && sameDay(day.date, selectedDate)}
+              eventCount={day ? (eventsByDate.get(getLocalDateKey(day.date))?.length ?? 0) : 0}
             />
           ))}
         </div>
@@ -140,8 +165,12 @@ function MonthGrid({ month, selectedDate, onSelect }: {
 }
 
 export default function CalendarPage() {
-  const { shiftGroup } = useAuth()
+  const { organization, shiftGroup } = useAuth()
+  const organizationId = organization?.id
   const [today] = useState(() => new Date())
+  const [events, setEvents] = useState<Event[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const [eventsError, setEventsError] = useState('')
 
   const [year, setYear] = useState(today.getFullYear())
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>({
@@ -159,6 +188,47 @@ export default function CalendarPage() {
     [year, shiftGroup?.anchor_date, shiftGroup?.pattern]
   )
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadEvents = async () => {
+      if (!organizationId) {
+        setEvents([])
+        setEventsLoading(false)
+        return
+      }
+
+      setEventsLoading(true)
+      setEventsError('')
+      try {
+        const rangeStart = new Date(year, 0, 1).toISOString()
+        const rangeEnd = new Date(year + 1, 0, 1).toISOString()
+        const nextEvents = await getScheduledEventsForRange(organizationId, rangeStart, rangeEnd)
+        if (!cancelled) setEvents(nextEvents)
+      } catch {
+        if (!cancelled) setEventsError('Geplante Events konnten nicht geladen werden.')
+      } finally {
+        if (!cancelled) setEventsLoading(false)
+      }
+    }
+
+    void loadEvents()
+    return () => { cancelled = true }
+  }, [organizationId, year])
+
+  const eventsByDate = useMemo(() => {
+    const grouped = new Map<string, Event[]>()
+    events.forEach((event) => {
+      if (!event.starts_at) return
+      const key = getDateKeyInTimeZone(event.starts_at, organization?.timezone)
+      if (!key) return
+      const entries = grouped.get(key)
+      if (entries) entries.push(event)
+      else grouped.set(key, [event])
+    })
+    return grouped
+  }, [events, organization?.timezone])
+
   // Ref-Array für alle 12 Monate
   const monthRefs = useRef<(HTMLDivElement | null)[]>([])
 
@@ -167,7 +237,11 @@ export default function CalendarPage() {
     const targetMonth = year === today.getFullYear() ? today.getMonth() : 0
     const ref = monthRefs.current[targetMonth]
     if (ref) {
-      setTimeout(() => ref.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      const timer = window.setTimeout(
+        () => ref.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+        50
+      )
+      return () => window.clearTimeout(timer)
     }
   }, [year, today])
 
@@ -182,6 +256,14 @@ export default function CalendarPage() {
     ? getShiftInfoForDate(shiftGroup?.anchor_date, selectedDay.date, shiftGroup?.pattern)
     : null
   const selectedSymbol = selectedShift?.symbol ?? '-'
+  const selectedEvents = selectedDay
+    ? eventsByDate.get(getLocalDateKey(selectedDay.date)) ?? []
+    : []
+
+  const changeYear = (nextYear: number) => {
+    setYear(nextYear)
+    setSelectedDay(null)
+  }
 
   return (
     <div className="mx-auto max-w-md pb-48 sm:pb-6">
@@ -195,15 +277,19 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {eventsError && (
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{eventsError}</p>
+      )}
+
       {/* Jahr-Navigation */}
       <div className="flex items-center justify-between mb-5 sticky top-14 z-10 glass py-2 px-1 rounded-xl">
-        <button onClick={() => setYear(y => y - 1)}
+        <button onClick={() => changeYear(year - 1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all"
           aria-label="Vorheriges Jahr">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-lg font-bold text-gray-900 dark:text-slate-50">{year}</h1>
-        <button onClick={() => setYear(y => y + 1)}
+        <button onClick={() => changeYear(year + 1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all"
           aria-label="Nächstes Jahr">
           <ChevronRight className="w-5 h-5" />
@@ -222,6 +308,7 @@ export default function CalendarPage() {
               month={month}
               selectedDate={selectedDay?.date ?? null}
               onSelect={setSelectedDay}
+              eventsByDate={eventsByDate}
             />
           </div>
         ))}
@@ -229,7 +316,7 @@ export default function CalendarPage() {
 
       {/* Ausgewählter Tag — fixed über Nav */}
       {selectedDay && (
-        <div className="fixed bottom-16 left-0 right-0 sm:sticky sm:bottom-0 glass rounded-t-2xl rounded-b-none border border-white/30 dark:border-emerald-900/25 border-b-0 p-4 shadow-lg z-20">
+        <div className="fixed bottom-16 left-0 right-0 max-h-[52vh] overflow-y-auto sm:sticky sm:bottom-0 glass rounded-t-2xl rounded-b-none border border-white/30 dark:border-emerald-900/25 border-b-0 p-4 shadow-lg z-20">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-slate-500 mb-0.5">
@@ -245,6 +332,39 @@ export default function CalendarPage() {
           </div>
           {selectedShift?.label && (
             <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{selectedShift.label}</p>
+          )}
+          {eventsLoading ? (
+            <p className="mt-3 text-xs text-gray-400">Events werden geladen …</p>
+          ) : selectedEvents.length > 0 ? (
+            <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 dark:border-emerald-900/30">
+              {selectedEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  to={`/events/${event.id}`}
+                  className="rounded-xl bg-emerald-50 px-3 py-2 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60"
+                >
+                  <div className="flex items-start gap-2">
+                    <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                        {event.title}
+                      </p>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                        {formatEventSchedule(event.starts_at, event.ends_at, organization?.timezone)}
+                      </p>
+                      {event.final_location && (
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                          <MapPin className="h-3 w-3" />
+                          {event.final_location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-gray-400">Keine Events an diesem Tag.</p>
           )}
         </div>
       )}

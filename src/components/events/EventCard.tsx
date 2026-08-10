@@ -4,6 +4,7 @@ import { Card } from '../ui/Card'
 import EventStatusBadge from './EventStatusBadge'
 import type { Event, EventAttendance, AttendanceStatus } from '../../types'
 import { cn } from '../../lib/cn'
+import { formatEventSchedule } from '../../lib/dateTime'
 
 const attendanceLabels: Record<AttendanceStatus, string> = {
   attending: 'Ich bin dabei',
@@ -23,6 +24,8 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, attendance }: EventCardProps) {
+  const schedule = formatEventSchedule(event.starts_at, event.ends_at)
+
   return (
     <Link to={`/events/${event.id}`} className="block group">
       <Card className="hover:border-emerald-200 hover:shadow-md transition-all">
@@ -43,7 +46,7 @@ export default function EventCard({ event, attendance }: EventCardProps) {
               <p className="mt-1 text-sm text-gray-500 line-clamp-2">{event.description}</p>
             )}
 
-            {(event.final_location || event.final_date) && (
+            {(event.final_location || schedule || event.final_date) && (
               <div className="mt-3 flex flex-wrap gap-3">
                 {event.final_location && (
                   <span className="flex items-center gap-1 text-xs text-gray-600">
@@ -51,10 +54,10 @@ export default function EventCard({ event, attendance }: EventCardProps) {
                     {event.final_location}
                   </span>
                 )}
-                {event.final_date && (
+                {(schedule || event.final_date) && (
                   <span className="flex items-center gap-1 text-xs text-gray-600">
                     <Calendar className="w-3.5 h-3.5" />
-                    {event.final_date}
+                    {schedule ?? event.final_date}
                   </span>
                 )}
               </div>
