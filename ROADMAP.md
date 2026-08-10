@@ -1,9 +1,9 @@
 # Produktfahrplan
 
 Grüne Schicht wird in sieben klar abgegrenzten Phasen von der lokalen Ausgangs-App zur
-kontrollierten Beta entwickelt. Die Phasen 0 bis 3 bilden das sichere Fundament und den
-persönlichen Schichtkalender; die Phasen 4 bis 6 ergänzen die eigentlichen Arbeitsabläufe und
-bereiten die Veröffentlichung vor.
+kontrollierten Beta entwickelt. Die Phasen 0 bis 4 bilden das sichere Fundament, den
+persönlichen Schichtkalender und die zentralen Antragsabläufe; die Phasen 5 und 6 ergänzen
+Benachrichtigungen und bereiten die Veröffentlichung vor.
 
 | Phase | Status | Schwerpunkt |
 |---|---|---|
@@ -11,7 +11,7 @@ bereiten die Veröffentlichung vor.
 | 1 | Abgeschlossen | Zentrale Schichtgruppen und verbindliche Mitgliederzuordnung |
 | 2 | Abgeschlossen | Kontrolliertes Onboarding, Admin-Freigabe und Mitgliederverwaltung |
 | 3 | Abgeschlossen | Strukturierte Eventtermine, Schichtkalender und persönliche Termin-/Schichtansicht |
-| 4 | Offen | Schichtabweichungen, Abwesenheiten und Tauschanfragen mit Freigabeworkflow |
+| 4 | Abgeschlossen | Schichtabweichungen, Abwesenheiten und Tauschanfragen mit Freigabeworkflow |
 | 5 | Offen | Benachrichtigungen, PWA/Offline-Nutzung und Feinschliff der Eventzusammenarbeit |
 | 6 | Offen | Beta-Härtung, Datenschutz, Monitoring, Egress-Schutz und bewusste Veröffentlichung |
 

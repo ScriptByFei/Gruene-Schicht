@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SHIFT_PATTERN, getShiftInfoForDate } from './shifts'
+import {
+  DEFAULT_SHIFT_PATTERN,
+  getEffectiveShiftInfoForDate,
+  getShiftInfoForDate,
+} from './shifts'
 
 describe('getShiftInfoForDate', () => {
   it('starts on the first day of the configured pattern', () => {
@@ -43,5 +47,17 @@ describe('getShiftInfoForDate', () => {
 
   it('rejects invalid group-specific patterns', () => {
     expect(getShiftInfoForDate('2026-04-27', new Date(2026, 3, 27), 'FX')).toBeNull()
+  })
+
+  it('uses an approved override instead of the group pattern', () => {
+    const shift = getEffectiveShiftInfoForDate(
+      '2026-05-04',
+      new Date(2026, 4, 4),
+      'FSN-',
+      'N'
+    )
+
+    expect(shift?.symbol).toBe('N')
+    expect(shift?.label).toBe('Nachtschicht')
   })
 })

@@ -3,10 +3,16 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { cn } from '../lib/cn'
-import { getShiftInfoForDate, type ShiftInfo, type ShiftSymbol } from '../lib/shifts'
+import {
+  getEffectiveShiftInfoForDate,
+  getShiftInfoForDate,
+  type ShiftInfo,
+  type ShiftSymbol,
+} from '../lib/shifts'
 import { getScheduledEventsForRange } from '../services/events'
+import { getShiftOverrides } from '../services/shiftRequests'
 import { formatEventSchedule, getDateKeyInTimeZone, getLocalDateKey } from '../lib/dateTime'
-import type { Event } from '../types'
+import type { Event, ShiftOverride } from '../types'
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
 const calendarDayFormatter = new Intl.DateTimeFormat('de-DE', {
@@ -26,6 +32,7 @@ interface CalendarDay {
   isToday: boolean
   isCurrentMonth: boolean
   shift: ShiftInfo | null
+  override: ShiftOverride | null
 }
 interface CalendarWeek { weekNumber: number; days: (CalendarDay | null)[] }
 interface CalendarMonth { year: number; monthIndex: number; weeks: CalendarWeek[] }
@@ -47,8 +54,9 @@ function getIsoWeek(date: Date): number {
 function buildMonth(
   year: number,
   monthIndex: number,
-  shiftStartDate?: string | null,
-  pattern?: string
+  shiftStartDate: string | null | undefined,
+  pattern: string | undefined,
+  overridesByDate: Map<string, ShiftOverride>
 ): CalendarMonth {
   const first = new Date(year, monthIndex, 1)
   const last = new Date(year, monthIndex + 1, 0)
@@ -62,11 +70,22 @@ function buildMonth(
     const days = Array.from({ length: 7 }, (_, di): CalendarDay | null => {
       const date = addDays(monday, di)
       const isCurrentMonth = date.getMonth() === monthIndex
+      const override = isCurrentMonth
+        ? overridesByDate.get(getLocalDateKey(date)) ?? null
+        : null
       return {
         date,
         isToday: sameDay(date, today),
         isCurrentMonth,
-        shift: isCurrentMonth ? getShiftInfoForDate(shiftStartDate, date, pattern) : null,
+        shift: isCurrentMonth
+          ? getEffectiveShiftInfoForDate(
+              shiftStartDate,
+              date,
+              pattern,
+              override?.shift_symbol
+            )
+          : null,
+        override,
       }
     })
     weeks.push({ weekNumber: getIsoWeek(monday), days })
@@ -94,7 +113,7 @@ function DayCell({ day, onSelect, isSelected, eventCount }: {
       onClick={() => onSelect(day)}
       aria-label={`${calendarDayFormatter.format(day.date)}: ${day.shift?.label ?? 'Keine Schicht'}${
         eventCount > 0 ? `, ${eventCount} Event${eventCount === 1 ? '' : 's'}` : ''
-      }`}
+      }${day.override ? `, genehmigter ${day.override.kind === 'swap' ? 'Schichttausch' : 'Abwesenheitstag'}` : ''}`}
       className={cn(
         'relative h-8 w-full flex items-center justify-center rounded-sm text-xs font-bold transition-all select-none',
         shiftCellClass[symbol],
@@ -119,6 +138,12 @@ function DayCell({ day, onSelect, isSelected, eventCount }: {
         >
           {eventCount > 1 ? eventCount : ''}
         </span>
+      )}
+      {day.override && (
+        <span
+          className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-violet-500 ring-1 ring-white"
+          aria-hidden="true"
+        />
       )}
     </button>
   )
@@ -165,10 +190,12 @@ function MonthGrid({ month, selectedDate, onSelect, eventsByDate }: {
 }
 
 export default function CalendarPage() {
-  const { organization, shiftGroup } = useAuth()
+  const { user, organization, shiftGroup } = useAuth()
+  const userId = user?.id
   const organizationId = organization?.id
   const [today] = useState(() => new Date())
   const [events, setEvents] = useState<Event[]>([])
+  const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventsError, setEventsError] = useState('')
 
@@ -178,22 +205,35 @@ export default function CalendarPage() {
     isToday: true,
     isCurrentMonth: true,
     shift: getShiftInfoForDate(shiftGroup?.anchor_date, today, shiftGroup?.pattern),
+    override: null,
   })
+
+  const overridesByDate = useMemo(
+    () => new Map(shiftOverrides.map((override) => [override.shift_date, override])),
+    [shiftOverrides]
+  )
 
   const months = useMemo(
     () => Array.from(
       { length: 12 },
-      (_, i) => buildMonth(year, i, shiftGroup?.anchor_date, shiftGroup?.pattern)
+      (_, i) => buildMonth(
+        year,
+        i,
+        shiftGroup?.anchor_date,
+        shiftGroup?.pattern,
+        overridesByDate
+      )
     ),
-    [year, shiftGroup?.anchor_date, shiftGroup?.pattern]
+    [year, shiftGroup?.anchor_date, shiftGroup?.pattern, overridesByDate]
   )
 
   useEffect(() => {
     let cancelled = false
 
-    const loadEvents = async () => {
-      if (!organizationId) {
+    const loadCalendarData = async () => {
+      if (!organizationId || !userId) {
         setEvents([])
+        setShiftOverrides([])
         setEventsLoading(false)
         return
       }
@@ -203,18 +243,24 @@ export default function CalendarPage() {
       try {
         const rangeStart = new Date(year, 0, 1).toISOString()
         const rangeEnd = new Date(year + 1, 0, 1).toISOString()
-        const nextEvents = await getScheduledEventsForRange(organizationId, rangeStart, rangeEnd)
-        if (!cancelled) setEvents(nextEvents)
+        const [nextEvents, nextOverrides] = await Promise.all([
+          getScheduledEventsForRange(organizationId, rangeStart, rangeEnd),
+          getShiftOverrides(organizationId, userId, `${year}-01-01`, `${year}-12-31`),
+        ])
+        if (!cancelled) {
+          setEvents(nextEvents)
+          setShiftOverrides(nextOverrides)
+        }
       } catch {
-        if (!cancelled) setEventsError('Geplante Events konnten nicht geladen werden.')
+        if (!cancelled) setEventsError('Kalenderdaten konnten nicht vollständig geladen werden.')
       } finally {
         if (!cancelled) setEventsLoading(false)
       }
     }
 
-    void loadEvents()
+    void loadCalendarData()
     return () => { cancelled = true }
-  }, [organizationId, year])
+  }, [organizationId, userId, year])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, Event[]>()
@@ -252,8 +298,16 @@ export default function CalendarPage() {
     '-': 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400',
   }
 
+  const selectedOverride = selectedDay
+    ? overridesByDate.get(getLocalDateKey(selectedDay.date)) ?? null
+    : null
   const selectedShift = selectedDay
-    ? getShiftInfoForDate(shiftGroup?.anchor_date, selectedDay.date, shiftGroup?.pattern)
+    ? getEffectiveShiftInfoForDate(
+        shiftGroup?.anchor_date,
+        selectedDay.date,
+        shiftGroup?.pattern,
+        selectedOverride?.shift_symbol
+      )
     : null
   const selectedSymbol = selectedShift?.symbol ?? '-'
   const selectedEvents = selectedDay
@@ -332,6 +386,13 @@ export default function CalendarPage() {
           </div>
           {selectedShift?.label && (
             <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{selectedShift.label}</p>
+          )}
+          {selectedOverride && (
+            <p className="mt-2 inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-800">
+              {selectedOverride.kind === 'swap'
+                ? 'Genehmigter Schichttausch'
+                : 'Genehmigte Abwesenheit'}
+            </p>
           )}
           {eventsLoading ? (
             <p className="mt-3 text-xs text-gray-400">Events werden geladen …</p>

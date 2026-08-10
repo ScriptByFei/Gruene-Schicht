@@ -10,6 +10,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const ShiftRequestsPage = lazy(() => import('./pages/ShiftRequestsPage'))
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
@@ -42,6 +43,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <CalendarPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+            <Route
+            path="/requests"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ShiftRequestsPage />
                 </AppLayout>
               </ProtectedRoute>
             }

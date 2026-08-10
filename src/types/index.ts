@@ -19,6 +19,14 @@ export interface Profile {
 
 export type MembershipStatus = 'active' | 'disabled'
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
+export type ShiftRequestType = 'absence' | 'swap'
+export type ShiftRequestStatus =
+  | 'pending_target'
+  | 'pending_admin'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+export type ShiftOverrideKind = 'absence' | 'swap'
 
 export type ShiftGroupColor = 'red' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray'
 
@@ -68,6 +76,42 @@ export interface OrganizationAccessRequest {
 
 export interface OrganizationAccessRequestWithProfile extends OrganizationAccessRequest {
   display_name: string
+}
+
+export interface ShiftChangeRequest {
+  id: string
+  organization_id: string
+  requester_user_id: string
+  request_type: ShiftRequestType
+  requester_date: string
+  target_user_id: string | null
+  target_date: string | null
+  note: string | null
+  status: ShiftRequestStatus
+  target_responded_at: string | null
+  target_response_note: string | null
+  reviewed_at: string | null
+  reviewed_by: string | null
+  admin_response_note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ShiftChangeRequestWithProfiles extends ShiftChangeRequest {
+  requester_name: string
+  target_name: string | null
+  reviewer_name: string | null
+}
+
+export interface ShiftOverride {
+  id: string
+  organization_id: string
+  user_id: string
+  shift_date: string
+  shift_symbol: 'F' | 'S' | 'N' | '-'
+  kind: ShiftOverrideKind
+  source_request_id: string
+  created_at: string
 }
 
 export interface Event {

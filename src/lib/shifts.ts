@@ -63,6 +63,22 @@ export function getCurrentShift(
   return getShiftInfoForDate(shiftStartDate, today, pattern)?.label ?? null
 }
 
+export function getEffectiveShiftInfoForDate(
+  shiftStartDate: string | null | undefined,
+  date: Date,
+  pattern: string | undefined,
+  overrideSymbol?: ShiftSymbol
+): ShiftInfo | null {
+  const baseShift = getShiftInfoForDate(shiftStartDate, date, pattern)
+  if (!overrideSymbol) return baseShift
+
+  return {
+    symbol: overrideSymbol,
+    label: shiftLabels[overrideSymbol],
+    patternDay: baseShift?.patternDay ?? 0,
+  }
+}
+
 export function formatShiftStartDate(date?: string | null): string {
   const parsed = parseLocalDate(date ?? '')
   if (!parsed) return 'nicht gesetzt'
