@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import type { Organization, OrganizationMembership, Profile } from '../types'
+import type { Organization, OrganizationMembership, Profile, ShiftGroup } from '../types'
 import { supabase } from '../lib/supabase'
 import { getProfile } from '../services/profiles'
 import { getPrimaryOrganization } from '../services/organizations'
@@ -11,6 +11,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [membership, setMembership] = useState<OrganizationMembership | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
+  const [shiftGroup, setShiftGroup] = useState<ShiftGroup | null>(null)
   const [loading, setLoading] = useState(true)
 
   const loadIdentity = async (userId: string) => {
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(nextProfile)
     setMembership(organizationContext?.membership ?? null)
     setOrganization(organizationContext?.organization ?? null)
+    setShiftGroup(organizationContext?.shiftGroup ?? null)
   }
 
   const refreshProfile = async () => {
@@ -48,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null)
         setMembership(null)
         setOrganization(null)
+        setShiftGroup(null)
         setLoading(false)
       }
     })
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         membership,
         organization,
+        shiftGroup,
         loading,
         isAdmin: membership?.role === 'admin' && membership.status === 'active',
         refreshProfile,

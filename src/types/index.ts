@@ -19,6 +19,8 @@ export interface Profile {
 
 export type MembershipStatus = 'active' | 'disabled'
 
+export type ShiftGroupColor = 'red' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray'
+
 export interface Organization {
   id: string
   name: string
@@ -30,9 +32,26 @@ export interface Organization {
 export interface OrganizationMembership {
   organization_id: string
   user_id: string
+  shift_group_id: string | null
   role: UserRole
   status: MembershipStatus
   joined_at: string
+}
+
+export interface ShiftGroup {
+  id: string
+  organization_id: string
+  name: string
+  anchor_date: string
+  pattern: string
+  color: ShiftGroupColor
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface OrganizationMemberWithProfile extends OrganizationMembership {
+  display_name: string
 }
 
 export interface Event {
@@ -90,7 +109,7 @@ export interface Suggestion {
   text: string
   status: SuggestionStatus
   created_at: string
-  profile?: Pick<Profile, 'display_name' | 'shift_start_date'>
+  profile?: Pick<Profile, 'display_name'>
 }
 
 export interface PollResult {

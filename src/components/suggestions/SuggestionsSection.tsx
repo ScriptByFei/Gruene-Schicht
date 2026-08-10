@@ -4,7 +4,6 @@ import { Card, CardHeader } from '../ui/Card'
 import { Textarea } from '../ui/Input'
 import Button from '../ui/Button'
 import { cn } from '../../lib/cn'
-import { getCurrentShift } from '../../lib/shifts'
 import type { Suggestion, SuggestionStatus } from '../../types'
 import { createSuggestion, updateSuggestionStatus } from '../../services/suggestions'
 
@@ -129,7 +128,6 @@ export default function SuggestionsSection({
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-gray-400">
                     {s.profile?.display_name ?? 'Anonym'}
-                    {s.profile?.shift_start_date && ` · ${getCurrentShift(s.profile.shift_start_date) ?? 'Schicht offen'}`}
                   </span>
                   <span className={cn('text-xs font-medium', color)}>{label}</span>
                 </div>

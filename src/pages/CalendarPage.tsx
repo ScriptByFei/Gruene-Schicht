@@ -36,7 +36,12 @@ function getIsoWeek(date: Date): number {
   ft.setDate(ft.getDate() - ((ft.getDay() + 6) % 7) + 3)
   return 1 + Math.round((t.getTime() - ft.getTime()) / (7 * 24 * 60 * 60 * 1000))
 }
-function buildMonth(year: number, monthIndex: number, shiftStartDate?: string | null): CalendarMonth {
+function buildMonth(
+  year: number,
+  monthIndex: number,
+  shiftStartDate?: string | null,
+  pattern?: string
+): CalendarMonth {
   const first = new Date(year, monthIndex, 1)
   const last = new Date(year, monthIndex + 1, 0)
   const offset = (first.getDay() + 6) % 7
@@ -53,7 +58,7 @@ function buildMonth(year: number, monthIndex: number, shiftStartDate?: string | 
         date,
         isToday: sameDay(date, today),
         isCurrentMonth,
-        shift: isCurrentMonth ? getShiftInfoForDate(shiftStartDate, date) : null,
+        shift: isCurrentMonth ? getShiftInfoForDate(shiftStartDate, date, pattern) : null,
       }
     })
     weeks.push({ weekNumber: getIsoWeek(monday), days })
@@ -135,7 +140,7 @@ function MonthGrid({ month, selectedDate, onSelect }: {
 }
 
 export default function CalendarPage() {
-  const { profile } = useAuth()
+  const { shiftGroup } = useAuth()
   const [today] = useState(() => new Date())
 
   const [year, setYear] = useState(today.getFullYear())
@@ -143,12 +148,15 @@ export default function CalendarPage() {
     date: today,
     isToday: true,
     isCurrentMonth: true,
-    shift: getShiftInfoForDate(profile?.shift_start_date, today),
+    shift: getShiftInfoForDate(shiftGroup?.anchor_date, today, shiftGroup?.pattern),
   })
 
   const months = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => buildMonth(year, i, profile?.shift_start_date)),
-    [year, profile?.shift_start_date]
+    () => Array.from(
+      { length: 12 },
+      (_, i) => buildMonth(year, i, shiftGroup?.anchor_date, shiftGroup?.pattern)
+    ),
+    [year, shiftGroup?.anchor_date, shiftGroup?.pattern]
   )
 
   // Ref-Array für alle 12 Monate
@@ -171,12 +179,21 @@ export default function CalendarPage() {
   }
 
   const selectedShift = selectedDay
-    ? getShiftInfoForDate(profile?.shift_start_date, selectedDay.date)
+    ? getShiftInfoForDate(shiftGroup?.anchor_date, selectedDay.date, shiftGroup?.pattern)
     : null
   const selectedSymbol = selectedShift?.symbol ?? '-'
 
   return (
     <div className="mx-auto max-w-md pb-48 sm:pb-6">
+
+      {!shiftGroup && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-900">Noch keine Schichtgruppe zugeordnet</p>
+          <p className="mt-1 text-xs text-amber-700">
+            Ein Admin deines Betriebs kann die Zuordnung im Admin-Bereich vornehmen.
+          </p>
+        </div>
+      )}
 
       {/* Jahr-Navigation */}
       <div className="flex items-center justify-between mb-5 sticky top-14 z-10 glass py-2 px-1 rounded-xl">
