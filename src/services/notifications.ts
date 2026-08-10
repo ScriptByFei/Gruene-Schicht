@@ -4,7 +4,7 @@ import type { AppNotification } from '../types'
 export async function getNotifications(limit = 50): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from('notifications')
-    .select('*')
+    .select('id, organization_id, user_id, type, title, body, link, actor_user_id, read_at, created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
 

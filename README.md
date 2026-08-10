@@ -31,6 +31,9 @@ npm run dev
 npm run make-admin -- name@firma.de
 ```
 
+Die lokale Registrierung ist über `VITE_REGISTRATION_ENABLED=true` in `.env.local` verfügbar.
+Für die spätere geschlossene Beta bleibt sie im Frontend und zusätzlich in Supabase Auth deaktiviert.
+
 ## Umgebungen
 
 - **Lokal:** App und Supabase laufen auf dem eigenen Rechner. Hier finden Entwicklung,
@@ -58,9 +61,13 @@ das Frontend bewusst manuell veröffentlicht.
 | Route | Zugang |
 |---|---|
 | `/login` | Öffentlich |
-| `/register` | Öffentlich |
+| `/register` | Öffentlich, Formular nur bei lokal aktivierter Registrierung |
+| `/privacy` | Öffentlich |
 | `/dashboard` | Eingeloggt |
+| `/calendar` | Eingeloggt |
+| `/requests` | Eingeloggt |
 | `/events/:id` | Eingeloggt |
+| `/notifications` | Eingeloggt |
 | `/profile` | Eingeloggt |
 | `/admin` | Nur Admins |
 
@@ -71,3 +78,18 @@ npm run lint
 npm test
 npm run build
 ```
+
+## Geschlossene Beta
+
+Phase 6 ist technisch abgeschlossen, veröffentlicht die App aber nicht. Vor einem Hosting werden
+`.env.beta.example` in eine private Beta-Konfiguration übernommen und die Freigabesperren geprüft:
+
+```bash
+npm run beta:check -- .env.beta.local
+```
+
+Die vollständige manuelle Prüfung steht in
+[`docs/BETA_RELEASE_CHECKLIST.md`](docs/BETA_RELEASE_CHECKLIST.md). Der Adminbereich lädt nur
+kompakte Eventzähler; Umfragen und Vorschläge werden erst beim Aufklappen eines Events abgerufen.
+Das Beta-Monitoring speichert keine Freitexte oder Stacktraces und arbeitet ohne Polling, Realtime,
+Analytics oder Web-Push.

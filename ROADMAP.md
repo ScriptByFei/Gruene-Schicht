@@ -13,7 +13,9 @@ Benachrichtigungen und bereiten die Veröffentlichung vor.
 | 3 | Abgeschlossen | Strukturierte Eventtermine, Schichtkalender und persönliche Termin-/Schichtansicht |
 | 4 | Abgeschlossen | Schichtabweichungen, Abwesenheiten und Tauschanfragen mit Freigabeworkflow |
 | 5 | Abgeschlossen | Datensparsame In-App-Benachrichtigungen, installierbare PWA, Offline-Kalender und Teilnehmerübersicht |
-| 6 | Offen | Beta-Härtung, Datenschutz, Monitoring, Egress-Schutz und bewusste Veröffentlichung |
+| 6 | Abgeschlossen · Freigabe geschlossen | Beta-Härtung, Datenschutz, Monitoring, Egress-Schutz und bewusste Veröffentlichung |
 
-Die App bleibt bis Phase 6 unveröffentlicht. Das Supabase-Cloudprojekt dient bis dahin als
-Staging-Umgebung; echte Nutzerregistrierungen werden erst nach der Beta-Freigabe geöffnet.
+Die technische Umsetzung aller sieben Phasen ist abgeschlossen. Die App bleibt trotzdem
+unveröffentlicht, bis die Beta-Freigabecheckliste vollständig erfüllt und die Veröffentlichung
+ausdrücklich bestätigt wurde. Das Supabase-Cloudprojekt dient weiterhin als Staging-Umgebung;
+die geschlossene Beta startet später per Einladung ohne öffentliche Selbstregistrierung.

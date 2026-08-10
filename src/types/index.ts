@@ -208,3 +208,24 @@ export interface AttendanceSummary {
   declined: number
   total: number
 }
+
+export interface AdminEventOverview {
+  event_id: string
+  poll_count: number
+  attending: number
+  maybe: number
+  declined: number
+  pending_suggestions: number
+}
+
+export interface BetaHealth {
+  database_now: string
+  active_members: number
+  active_events: number
+  pending_access_requests: number
+  pending_shift_requests: number
+  unread_notifications: number
+  client_errors_24h: number
+  client_errors_7d: number
+  last_client_error_at: string | null
+}

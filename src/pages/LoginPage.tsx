@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
+import { runtimeConfig } from '../lib/runtimeConfig'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -91,10 +92,21 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-gray-400 dark:text-emerald-700">
-          Noch kein Konto?{' '}
-          <Link to="/register" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
-            Registrieren
+        {runtimeConfig.registrationEnabled ? (
+          <p className="mt-4 text-center text-xs text-gray-400 dark:text-emerald-700">
+            Noch kein Konto?{' '}
+            <Link to="/register" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
+              Registrieren
+            </Link>
+          </p>
+        ) : (
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            Geschlossene Beta · Konten werden nur nach Einladung freigeschaltet.
+          </p>
+        )}
+        <p className="mt-3 text-center text-xs">
+          <Link to="/privacy" className="text-gray-500 underline-offset-2 hover:underline dark:text-gray-400">
+            Datenschutz
           </Link>
         </p>
       </div>

@@ -9,9 +9,10 @@ export async function getUserAttendanceForEvents(
 
   const { data, error } = await supabase
     .from('event_attendance')
-    .select('*')
+    .select('id, event_id, user_id, status, created_at, updated_at')
     .eq('user_id', userId)
     .in('event_id', eventIds)
+    .limit(100)
   if (error) throw error
   return (data ?? []) as EventAttendance[]
 }
@@ -45,7 +46,7 @@ export async function getUserAttendance(
 ): Promise<EventAttendance | null> {
   const { data, error } = await supabase
     .from('event_attendance')
-    .select('*')
+    .select('id, event_id, user_id, status, created_at, updated_at')
     .eq('event_id', eventId)
     .eq('user_id', userId)
     .maybeSingle()
