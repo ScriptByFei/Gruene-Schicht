@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import type { Organization, OrganizationMembership, Profile } from '../types'
+import type { Organization, OrganizationMembership, Profile, ShiftGroup } from '../types'
 
 export interface AuthContextValue {
   session: Session | null
@@ -8,6 +8,7 @@ export interface AuthContextValue {
   profile: Profile | null
   membership: OrganizationMembership | null
   organization: Organization | null
+  shiftGroup: ShiftGroup | null
   loading: boolean
   isAdmin: boolean
   refreshProfile: () => Promise<void>

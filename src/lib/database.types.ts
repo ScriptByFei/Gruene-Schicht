@@ -101,6 +101,7 @@ export type Database = {
           joined_at: string
           organization_id: string
           role: Database["public"]["Enums"]["user_role"]
+          shift_group_id: string | null
           status: Database["public"]["Enums"]["membership_status"]
           user_id: string
         }
@@ -108,6 +109,7 @@ export type Database = {
           joined_at?: string
           organization_id: string
           role?: Database["public"]["Enums"]["user_role"]
+          shift_group_id?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           user_id: string
         }
@@ -115,6 +117,7 @@ export type Database = {
           joined_at?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          shift_group_id?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           user_id?: string
         }
@@ -125,6 +128,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_shift_group_fk"
+            columns: ["organization_id", "shift_group_id"]
+            isOneToOne: false
+            referencedRelation: "shift_groups"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -223,17 +233,14 @@ export type Database = {
         Row: {
           display_name: string
           id: string
-          shift_start_date: string | null
         }
         Insert: {
           display_name: string
           id: string
-          shift_start_date?: string | null
         }
         Update: {
           display_name?: string
           id?: string
-          shift_start_date?: string | null
         }
         Relationships: [
           {
@@ -271,6 +278,50 @@ export type Database = {
           shift_start_date?: string | null
         }
         Relationships: []
+      }
+      shift_groups: {
+        Row: {
+          anchor_date: string
+          color: string
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          pattern: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          anchor_date: string
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          pattern?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          anchor_date?: string
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          pattern?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suggestions: {
         Row: {

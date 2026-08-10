@@ -3,21 +3,20 @@ import { User } from 'lucide-react'
 import { useAuth } from '../contexts/useAuth'
 import { useTheme } from '../contexts/useTheme'
 import { updateProfile } from '../services/profiles'
-import { Input, Select } from '../components/ui/Input'
+import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
-import { SHIFT_PATTERN, SHIFT_TEAM_OPTIONS, formatShiftStartDate, getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
+import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
 
 export default function ProfilePage() {
-  const { profile, user, isAdmin, refreshProfile } = useAuth()
+  const { profile, user, isAdmin, shiftGroup, refreshProfile } = useAuth()
   const { theme, setTheme } = useTheme()
-  const currentShift = getCurrentShift(profile?.shift_start_date)
+  const currentShift = getCurrentShift(shiftGroup?.anchor_date, new Date(), shiftGroup?.pattern)
 
   const [form, setForm] = useState({
     name: profile?.name ?? '',
     display_name: profile?.display_name ?? '',
-    shift_start_date: profile?.shift_start_date ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -34,10 +33,7 @@ export default function ProfilePage() {
     setError('')
     setSuccess(false)
     try {
-      await updateProfile(user.id, {
-        ...form,
-        shift_start_date: form.shift_start_date || null,
-      })
+      await updateProfile(user.id, form)
       await refreshProfile()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -80,17 +76,18 @@ export default function ProfilePage() {
             required
             hint="Wird in der App und in Kommentaren angezeigt"
           />
-          <Select
-            label="Schicht"
-            value={form.shift_start_date}
-            onChange={(e) => setForm((prev) => ({ ...prev, shift_start_date: e.target.value }))}
-            options={SHIFT_TEAM_OPTIONS}
-            required
-          />
-          <p className="-mt-2 text-xs text-gray-500">
-            Aktuell gespeichert: {getShiftTeamLabel(profile?.shift_start_date)} · {formatShiftStartDate(profile?.shift_start_date)}.
-            {' '}Rhythmus: {SHIFT_PATTERN}
-          </p>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">Schichtgruppe</p>
+            <p className="mt-1 font-medium text-gray-900">
+              {shiftGroup ? `${shiftGroup.name} Schicht` : 'Noch nicht zugeordnet'}
+            </p>
+            {shiftGroup && (
+              <p className="mt-1 text-xs text-gray-500">
+                Ankerdatum: {formatShiftStartDate(shiftGroup.anchor_date)} · Rhythmus: {shiftGroup.pattern}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-gray-400">Die Zuordnung verwaltet ein Admin deines Betriebs.</p>
+          </div>
 
           {success && (
             <p className="text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg">

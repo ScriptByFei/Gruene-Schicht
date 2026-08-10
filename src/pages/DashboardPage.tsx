@@ -6,11 +6,11 @@ import { getUserAttendanceForEvents } from '../services/attendance'
 import EventCard from '../components/events/EventCard'
 import { PageSpinner } from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
-import { getCurrentShift, getShiftTeamLabel } from '../lib/shifts'
+import { getCurrentShift } from '../lib/shifts'
 import type { Event, EventAttendance } from '../types'
 
 export default function DashboardPage() {
-  const { profile, user, organization } = useAuth()
+  const { profile, user, organization, shiftGroup } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [attendanceMap, setAttendanceMap] = useState<Record<string, EventAttendance>>({})
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const activeEvents = events.filter((e) => e.status === 'active')
   const closedEvents = events.filter((e) => e.status === 'closed')
 
-  const currentShift = getCurrentShift(profile?.shift_start_date)
+  const currentShift = getCurrentShift(shiftGroup?.anchor_date, new Date(), shiftGroup?.pattern)
 
   if (loading) return <PageSpinner />
 
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           Hallo, {profile?.display_name ?? 'Willkommen'} 👋
         </h1>
         <p className="mt-1.5 text-sm text-gray-600">
-          {getShiftTeamLabel(profile?.shift_start_date)}
+          {shiftGroup ? `${shiftGroup.name} Schicht` : 'Schichtgruppe noch nicht zugeordnet'}
           {currentShift && ` · Heute: ${currentShift}`}
         </p>
       </div>

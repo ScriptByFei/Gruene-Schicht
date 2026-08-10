@@ -1,9 +1,10 @@
 import { supabase } from '../lib/supabase'
-import type { Organization, OrganizationMembership } from '../types'
+import type { Organization, OrganizationMembership, ShiftGroup } from '../types'
 
 export interface OrganizationContext {
   membership: OrganizationMembership
   organization: Organization
+  shiftGroup: ShiftGroup | null
 }
 
 export async function getPrimaryOrganization(userId: string): Promise<OrganizationContext | null> {
@@ -19,16 +20,27 @@ export async function getPrimaryOrganization(userId: string): Promise<Organizati
   if (membershipError) throw membershipError
   if (!membership) return null
 
-  const { data: organization, error: organizationError } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('id', membership.organization_id)
-    .single()
+  const [organizationResult, shiftGroupResult] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', membership.organization_id)
+      .single(),
+    membership.shift_group_id
+      ? supabase
+          .from('shift_groups')
+          .select('*')
+          .eq('id', membership.shift_group_id)
+          .single()
+      : Promise.resolve({ data: null, error: null }),
+  ])
 
-  if (organizationError) throw organizationError
+  if (organizationResult.error) throw organizationResult.error
+  if (shiftGroupResult.error) throw shiftGroupResult.error
 
   return {
     membership: membership as OrganizationMembership,
-    organization: organization as Organization,
+    organization: organizationResult.data as Organization,
+    shiftGroup: shiftGroupResult.data as ShiftGroup | null,
   }
 }

@@ -7,14 +7,13 @@ async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> 
 
   const { data: profiles, error } = await supabase
     .from('profile_directory')
-    .select('id, display_name, shift_start_date')
+    .select('id, display_name')
     .in('id', userIds)
   if (error) throw error
 
   const profilesById = new Map<string, Suggestion['profile']>(
     (profiles ?? []).map((profile) => [profile.id, {
       display_name: profile.display_name,
-      shift_start_date: profile.shift_start_date,
     } as Suggestion['profile']])
   )
 

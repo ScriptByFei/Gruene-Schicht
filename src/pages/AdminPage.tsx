@@ -13,7 +13,7 @@ import EventStatusBadge from '../components/events/EventStatusBadge'
 import { PageSpinner } from '../components/ui/Spinner'
 import type { Event, EventStatus, Poll, AttendanceSummary, Suggestion, PollType } from '../types'
 import { cn } from '../lib/cn'
-import { getCurrentShift } from '../lib/shifts'
+import ShiftGroupManagement from '../components/admin/ShiftGroupManagement'
 
 interface EventWithData {
   event: Event
@@ -23,7 +23,7 @@ interface EventWithData {
 }
 
 export default function AdminPage() {
-  const { user, organization } = useAuth()
+  const { user, organization, refreshProfile } = useAuth()
   const [eventsWithData, setEventsWithData] = useState<EventWithData[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
@@ -185,7 +185,7 @@ export default function AdminPage() {
       <div className="flex items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Admin-Bereich</h1>
-          <p className="mt-1 text-sm text-gray-600">Events und Umfragen verwalten</p>
+          <p className="mt-1 text-sm text-gray-600">Schichtgruppen, Mitarbeitende und Events verwalten</p>
         </div>
         <Button onClick={() => setShowCreateEvent(true)} size="sm" className="shrink-0 whitespace-nowrap">
           <Plus className="w-4 h-4" />
@@ -198,6 +198,13 @@ export default function AdminPage() {
           {error}
           <button onClick={() => setError('')}><X className="w-4 h-4" /></button>
         </p>
+      )}
+
+      {organization && (
+        <ShiftGroupManagement
+          organizationId={organization.id}
+          onAssignmentChanged={refreshProfile}
+        />
       )}
 
       {/* Create Event Form */}
@@ -470,7 +477,6 @@ export default function AdminPage() {
                               <p className="text-gray-800">{s.text}</p>
                               <p className="text-xs text-gray-400 mt-0.5">
                                 {s.profile?.display_name}
-                                {s.profile?.shift_start_date && ` · ${getCurrentShift(s.profile.shift_start_date) ?? 'Schicht offen'}`}
                               </p>
                             </div>
                             {s.status === 'pending' && (
