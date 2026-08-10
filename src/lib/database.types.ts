@@ -96,6 +96,54 @@ export type Database = {
           },
         ]
       }
+      organization_access_requests: {
+        Row: {
+          id: string
+          organization_id: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_shift_group_id: string | null
+          status: Database["public"]["Enums"]["access_request_status"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_shift_group_id?: string | null
+          status?: Database["public"]["Enums"]["access_request_status"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_shift_group_id?: string | null
+          status?: Database["public"]["Enums"]["access_request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_access_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_access_requests_organization_id_reviewed_shif_fkey"
+            columns: ["organization_id", "reviewed_shift_group_id"]
+            isOneToOne: false
+            referencedRelation: "shift_groups"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           joined_at: string
@@ -439,8 +487,21 @@ export type Database = {
         Args: { p_option_id: string; p_poll_id: string }
         Returns: undefined
       }
+      request_organization_access: {
+        Args: { p_organization_slug: string }
+        Returns: string
+      }
+      review_organization_access_request: {
+        Args: {
+          p_approve: boolean
+          p_request_id: string
+          p_shift_group_id?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
+      access_request_status: "pending" | "approved" | "rejected"
       attendance_status: "attending" | "maybe" | "declined"
       event_status: "draft" | "active" | "closed"
       membership_status: "active" | "disabled"
@@ -574,6 +635,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_request_status: ["pending", "approved", "rejected"],
       attendance_status: ["attending", "maybe", "declined"],
       event_status: ["draft", "active", "closed"],
       membership_status: ["active", "disabled"],

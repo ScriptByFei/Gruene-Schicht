@@ -14,6 +14,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 import type { Event, EventStatus, Poll, AttendanceSummary, Suggestion, PollType } from '../types'
 import { cn } from '../lib/cn'
 import ShiftGroupManagement from '../components/admin/ShiftGroupManagement'
+import AccessRequestManagement from '../components/admin/AccessRequestManagement'
 
 interface EventWithData {
   event: Event
@@ -32,6 +33,7 @@ export default function AdminPage() {
   const [showFinalForm, setShowFinalForm] = useState<string | null>(null)
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [memberRefreshKey, setMemberRefreshKey] = useState(0)
 
   // New Event form
   const [newEvent, setNewEvent] = useState({ title: '', description: '', status: 'draft' as EventStatus })
@@ -201,10 +203,18 @@ export default function AdminPage() {
       )}
 
       {organization && (
-        <ShiftGroupManagement
-          organizationId={organization.id}
-          onAssignmentChanged={refreshProfile}
-        />
+        <>
+          <AccessRequestManagement
+            organizationId={organization.id}
+            onMemberChanged={() => setMemberRefreshKey((current) => current + 1)}
+          />
+          <ShiftGroupManagement
+            organizationId={organization.id}
+            currentUserId={user?.id ?? ''}
+            refreshKey={memberRefreshKey}
+            onAssignmentChanged={refreshProfile}
+          />
+        </>
       )}
 
       {/* Create Event Form */}
