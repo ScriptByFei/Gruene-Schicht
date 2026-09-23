@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { NotificationProvider } from './contexts/NotificationContext'
@@ -18,10 +18,11 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const Router = import.meta.env.BASE_URL === '/' ? BrowserRouter : HashRouter
 
 export default function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <Router>
       <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
@@ -113,6 +114,6 @@ export default function App() {
           </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
-    </BrowserRouter>
+    </Router>
   )
 }

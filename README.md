@@ -56,7 +56,9 @@ Für die spätere geschlossene Beta bleibt sie im Frontend und in Managed Better
   Öffentliche Registrierungen bleiben deaktiviert.
 - **GitHub Pages:** Pushes auf `main` veröffentlichen die geprüfte Beta unter
   <https://scriptbyfei.github.io/Gruene-Schicht/>. Pull Requests führen weiterhin nur Tests,
-  Lint und Build aus.
+  Lint und Build aus. App-Routen liegen dort im URL-Fragment (z. B.
+  <https://scriptbyfei.github.io/Gruene-Schicht/#/login>), damit GitHub Pages beim Neuladen
+  keine 404-Antwort für die Route liefert.
 
 Die Cloud-Migrationshistorie entspricht den Dateien in `neon/migrations`. Der Pages-Workflow liest
 die beiden öffentlichen Neon-Endpunkte sowie den Verantwortlichen und Datenschutzkontakt aus

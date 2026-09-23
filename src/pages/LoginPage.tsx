@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import { runtimeConfig } from '../lib/runtimeConfig'
+import { appRouteUrl } from '../lib/appRouteUrl'
 
 export default function LoginPage() {
   const location = useLocation()
@@ -25,7 +26,7 @@ export default function LoginPage() {
       setError('E-Mail oder Passwort ist falsch.')
       return
     }
-    window.location.replace(`${import.meta.env.BASE_URL}${from.replace(/^\/+/, '')}`)
+    window.location.replace(appRouteUrl(from))
   }
 
   return (

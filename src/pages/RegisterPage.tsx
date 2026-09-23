@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import { runtimeConfig } from '../lib/runtimeConfig'
+import { appRouteUrl } from '../lib/appRouteUrl'
 
 export default function RegisterPage() {
   if (!runtimeConfig.registrationEnabled) {
@@ -81,7 +82,7 @@ function OpenRegistration() {
       }
     }
 
-    window.location.replace(`${import.meta.env.BASE_URL}dashboard`)
+    window.location.replace(appRouteUrl('/dashboard'))
   }
 
   return (
