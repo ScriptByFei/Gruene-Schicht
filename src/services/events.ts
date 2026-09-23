@@ -1,10 +1,10 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { Event, EventStatus } from '../types'
 
 const EVENT_FIELDS = 'id, organization_id, title, description, status, final_location, final_date, final_note, starts_at, ends_at, created_by, created_at'
 
 export async function getActiveEvents(): Promise<Event[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .select(EVENT_FIELDS)
     .in('status', ['active', 'closed'])
@@ -16,7 +16,7 @@ export async function getActiveEvents(): Promise<Event[]> {
 }
 
 export async function getAllEvents(): Promise<Event[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .select(EVENT_FIELDS)
     .order('created_at', { ascending: false })
@@ -26,7 +26,7 @@ export async function getAllEvents(): Promise<Event[]> {
 }
 
 export async function getEvent(id: string): Promise<Event | null> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .select(EVENT_FIELDS)
     .eq('id', id)
@@ -38,7 +38,7 @@ export async function getEvent(id: string): Promise<Event | null> {
 export async function createEvent(
   payload: Pick<Event, 'organization_id' | 'title' | 'description' | 'status'> & { created_by: string }
 ): Promise<Event> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .insert(payload)
     .select(EVENT_FIELDS)
@@ -61,7 +61,7 @@ export async function updateEvent(
     | 'ends_at'
   >>
 ): Promise<Event> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .update(updates)
     .eq('id', id)
@@ -76,7 +76,7 @@ export async function getScheduledEventsForRange(
   rangeStart: string,
   rangeEnd: string
 ): Promise<Event[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('events')
     .select(EVENT_FIELDS)
     .eq('organization_id', organizationId)
@@ -92,7 +92,7 @@ export async function getScheduledEventsForRange(
 }
 
 export async function setEventStatus(id: string, status: EventStatus): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('events')
     .update({ status })
     .eq('id', id)
@@ -100,6 +100,6 @@ export async function setEventStatus(id: string, status: EventStatus): Promise<v
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  const { error } = await supabase.from('events').delete().eq('id', id)
+  const { error } = await client.from('events').delete().eq('id', id)
   if (error) throw error
 }

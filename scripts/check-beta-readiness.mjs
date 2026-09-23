@@ -14,8 +14,8 @@ function parseEnv(contents) {
 export function validateBetaEnvironment(values) {
   const errors = []
   const required = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_PUBLISHABLE_KEY',
+    'VITE_NEON_AUTH_URL',
+    'VITE_NEON_DATA_API_URL',
     'VITE_APP_ENV',
     'VITE_REGISTRATION_ENABLED',
     'VITE_LEGAL_OPERATOR_NAME',
@@ -31,11 +31,11 @@ export function validateBetaEnvironment(values) {
   if (values.VITE_REGISTRATION_ENABLED && values.VITE_REGISTRATION_ENABLED !== 'false') {
     errors.push('Die geschlossene Beta muss mit deaktivierter Registrierung starten.')
   }
-  if (values.VITE_SUPABASE_URL && !/^https:\/\/[^.]+\.supabase\.co\/?$/.test(values.VITE_SUPABASE_URL)) {
-    errors.push('VITE_SUPABASE_URL muss auf das Cloud-Projekt zeigen, nicht auf localhost.')
+  if (values.VITE_NEON_AUTH_URL && !/^https:\/\/[^/]+\.neonauth\.[^/]+\.(?:aws|azure)\.neon\.tech\/[^/?#]+\/auth$/.test(values.VITE_NEON_AUTH_URL)) {
+    errors.push('VITE_NEON_AUTH_URL muss auf den Managed-Better-Auth-Endpunkt zeigen.')
   }
-  if (values.VITE_SUPABASE_PUBLISHABLE_KEY && /service_role|secret/i.test(values.VITE_SUPABASE_PUBLISHABLE_KEY)) {
-    errors.push('Im Frontend darf niemals ein Service-Role- oder Secret-Key stehen.')
+  if (values.VITE_NEON_DATA_API_URL && !/^https:\/\/[^/]+\.apirest\.[^/]+\.(?:aws|azure)\.neon\.tech\/[^/?#]+\/rest\/v1$/.test(values.VITE_NEON_DATA_API_URL)) {
+    errors.push('VITE_NEON_DATA_API_URL muss auf den Neon-Data-API-Endpunkt zeigen.')
   }
   if (values.VITE_LEGAL_OPERATOR_NAME && /your legal|platzhalter|todo/i.test(values.VITE_LEGAL_OPERATOR_NAME)) {
     errors.push('Der rechtlich Verantwortliche ist noch ein Platzhalter.')

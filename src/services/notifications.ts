@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { AppNotification } from '../types'
 
 export async function getNotifications(limit = 50): Promise<AppNotification[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('notifications')
     .select('id, organization_id, user_id, type, title, body, link, actor_user_id, read_at, created_at')
     .order('created_at', { ascending: false })
@@ -13,7 +13,7 @@ export async function getNotifications(limit = 50): Promise<AppNotification[]> {
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('id', notificationId)
@@ -23,7 +23,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .is('read_at', null)

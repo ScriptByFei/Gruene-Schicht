@@ -1,11 +1,11 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { Suggestion, SuggestionStatus } from '../types'
 
 async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> {
   const userIds = Array.from(new Set(suggestions.map((s) => s.user_id)))
   if (userIds.length === 0) return suggestions
 
-  const { data: profiles, error } = await supabase
+  const { data: profiles, error } = await client
     .from('profile_directory')
     .select('id, display_name')
     .in('id', userIds)
@@ -24,7 +24,7 @@ async function attachProfiles(suggestions: Suggestion[]): Promise<Suggestion[]> 
 }
 
 export async function getSuggestionsForEvent(eventId: string): Promise<Suggestion[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('suggestions')
     .select('id, event_id, user_id, text, status, created_at')
     .eq('event_id', eventId)
@@ -39,7 +39,7 @@ export async function createSuggestion(
   userId: string,
   text: string
 ): Promise<Suggestion> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('suggestions')
     .insert({ event_id: eventId, user_id: userId, text, status: 'pending' })
     .select('id, event_id, user_id, text, status, created_at')
@@ -52,7 +52,7 @@ export async function updateSuggestionStatus(
   id: string,
   status: SuggestionStatus
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('suggestions')
     .update({ status })
     .eq('id', id)
@@ -60,7 +60,7 @@ export async function updateSuggestionStatus(
 }
 
 export async function getAllPendingSuggestions(): Promise<Suggestion[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('suggestions')
     .select('id, event_id, user_id, text, status, created_at')
     .eq('status', 'pending')

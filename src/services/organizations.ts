@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { Organization, OrganizationMembership, ShiftGroup } from '../types'
 
 export interface OrganizationContext {
@@ -8,7 +8,7 @@ export interface OrganizationContext {
 }
 
 export async function getPrimaryOrganization(userId: string): Promise<OrganizationContext | null> {
-  const { data: membership, error: membershipError } = await supabase
+  const { data: membership, error: membershipError } = await client
     .from('organization_members')
     .select('*')
     .eq('user_id', userId)
@@ -21,13 +21,13 @@ export async function getPrimaryOrganization(userId: string): Promise<Organizati
   if (!membership) return null
 
   const [organizationResult, shiftGroupResult] = await Promise.all([
-    supabase
+    client
       .from('organizations')
       .select('*')
       .eq('id', membership.organization_id)
       .single(),
     membership.shift_group_id
-      ? supabase
+      ? client
           .from('shift_groups')
           .select('*')
           .eq('id', membership.shift_group_id)

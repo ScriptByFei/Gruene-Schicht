@@ -1,10 +1,10 @@
 import { createContext } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
 import type { Organization, OrganizationMembership, Profile, ShiftGroup } from '../types'
+import type { AuthSession, AuthUser } from '../lib/neon'
 
 export interface AuthContextValue {
-  session: Session | null
-  user: User | null
+  session: AuthSession | null
+  user: AuthUser | null
   profile: Profile | null
   membership: OrganizationMembership | null
   organization: Organization | null

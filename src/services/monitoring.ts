@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { AdminEventOverview, BetaHealth } from '../types'
 
 export async function reportClientError(errorCode: string, route: string): Promise<void> {
-  const { error } = await supabase.rpc('report_client_error', {
+  const { error } = await client.rpc('report_client_error', {
     p_error_code: errorCode,
     p_route: route.slice(0, 160),
   })
@@ -10,7 +10,7 @@ export async function reportClientError(errorCode: string, route: string): Promi
 }
 
 export async function getBetaHealth(organizationId: string): Promise<BetaHealth> {
-  const { data, error } = await supabase.rpc('get_beta_health', {
+  const { data, error } = await client.rpc('get_beta_health', {
     p_organization_id: organizationId,
   })
   if (error) throw error
@@ -32,7 +32,7 @@ export async function getBetaHealth(organizationId: string): Promise<BetaHealth>
 export async function getAdminEventOverview(
   organizationId: string
 ): Promise<AdminEventOverview[]> {
-  const { data, error } = await supabase.rpc('get_admin_event_overview', {
+  const { data, error } = await client.rpc('get_admin_event_overview', {
     p_organization_id: organizationId,
   })
   if (error) throw error

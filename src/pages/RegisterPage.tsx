@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { CalendarDays } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
@@ -30,8 +30,6 @@ export default function RegisterPage() {
 }
 
 function OpenRegistration() {
-  const navigate = useNavigate()
-
   const [form, setForm] = useState({
     name: '',
     display_name: '',
@@ -54,7 +52,7 @@ function OpenRegistration() {
     }
 
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await client.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -71,7 +69,19 @@ function OpenRegistration() {
       return
     }
 
-    navigate('/dashboard')
+    if (data.user) {
+      const { error: profileError } = await client
+        .from('profiles')
+        .update({ name: form.name, display_name: form.display_name })
+        .eq('id', data.user.id)
+
+      if (profileError) {
+        setError('Das Konto wurde erstellt, aber das Profil konnte nicht vervollständigt werden.')
+        return
+      }
+    }
+
+    window.location.replace('/dashboard')
   }
 
   return (

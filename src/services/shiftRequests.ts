@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type {
   ShiftChangeRequest,
   ShiftChangeRequestWithProfiles,
@@ -18,7 +18,7 @@ export interface CreateShiftRequestInput {
 export async function getShiftChangeRequests(
   organizationId: string
 ): Promise<ShiftChangeRequestWithProfiles[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('shift_change_requests')
     .select('*')
     .eq('organization_id', organizationId)
@@ -35,7 +35,7 @@ export async function getShiftChangeRequests(
     request.reviewed_by,
   ]).filter((id): id is string => Boolean(id))))
 
-  const { data: profiles, error: profileError } = await supabase
+  const { data: profiles, error: profileError } = await client
     .from('profile_directory')
     .select('id, display_name')
     .in('id', profileIds)
@@ -61,7 +61,7 @@ export async function getShiftOverrides(
   startDate: string,
   endDate: string
 ): Promise<ShiftOverride[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('shift_overrides')
     .select('*')
     .eq('organization_id', organizationId)
@@ -75,7 +75,7 @@ export async function getShiftOverrides(
 }
 
 export async function createShiftChangeRequest(input: CreateShiftRequestInput): Promise<string> {
-  const { data, error } = await supabase.rpc('create_shift_change_request', {
+  const { data, error } = await client.rpc('create_shift_change_request', {
     p_organization_id: input.organizationId,
     p_request_type: input.requestType,
     p_requester_date: input.requesterDate,
@@ -93,7 +93,7 @@ export async function respondToShiftSwap(
   accept: boolean,
   note?: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('respond_to_shift_swap', {
+  const { error } = await client.rpc('respond_to_shift_swap', {
     p_request_id: requestId,
     p_accept: accept,
     p_note: note || undefined,
@@ -106,7 +106,7 @@ export async function reviewShiftChangeRequest(
   approve: boolean,
   note?: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('review_shift_change_request', {
+  const { error } = await client.rpc('review_shift_change_request', {
     p_request_id: requestId,
     p_approve: approve,
     p_note: note || undefined,
@@ -115,7 +115,7 @@ export async function reviewShiftChangeRequest(
 }
 
 export async function cancelShiftChangeRequest(requestId: string): Promise<void> {
-  const { error } = await supabase.rpc('cancel_shift_change_request', {
+  const { error } = await client.rpc('cancel_shift_change_request', {
     p_request_id: requestId,
   })
   if (error) throw error

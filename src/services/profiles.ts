@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { Profile } from '../types'
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -15,7 +15,7 @@ export async function updateProfile(
   userId: string,
   updates: Partial<Pick<Profile, 'display_name' | 'name'>>
 ): Promise<Profile> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('profiles')
     .update(updates)
     .eq('id', userId)
@@ -26,7 +26,7 @@ export async function updateProfile(
 }
 
 export async function getAllProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('profiles')
     .select('*')
     .order('name')

@@ -11,7 +11,7 @@ import Badge from '../components/ui/Badge'
 import { formatShiftStartDate, getCurrentShift } from '../lib/shifts'
 import { deleteMyAccount, exportMyData } from '../services/privacy'
 import { clearOfflineCache } from '../lib/offlineCache'
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -96,7 +96,7 @@ export default function ProfilePage() {
     try {
       await deleteMyAccount(deleteEmail)
       clearOfflineCache(user.id)
-      await supabase.auth.signOut({ scope: 'local' })
+      await client.auth.signOut({ scope: 'local' })
       navigate('/login', { replace: true })
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : ''

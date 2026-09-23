@@ -4,8 +4,8 @@ import { validateBetaEnvironment } from './check-beta-readiness.mjs'
 
 const valid = {
   VITE_APP_ENV: 'beta',
-  VITE_SUPABASE_URL: 'https://example.supabase.co',
-  VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_example',
+  VITE_NEON_AUTH_URL: 'https://ep-example.neonauth.c-5.eu-central-1.aws.neon.tech/neondb/auth',
+  VITE_NEON_DATA_API_URL: 'https://ep-example.apirest.c-5.eu-central-1.aws.neon.tech/neondb/rest/v1',
   VITE_REGISTRATION_ENABLED: 'false',
   VITE_LEGAL_OPERATOR_NAME: 'Beispiel Betrieb GmbH',
   VITE_LEGAL_CONTACT_EMAIL: 'datenschutz@example.de',
@@ -19,7 +19,7 @@ test('blocks public signup and frontend service keys', () => {
   const errors = validateBetaEnvironment({
     ...valid,
     VITE_REGISTRATION_ENABLED: 'true',
-    VITE_SUPABASE_SERVICE_ROLE_KEY: 'secret',
+    VITE_NEON_DATABASE_SECRET: 'postgresql://secret',
   })
   assert.equal(errors.length, 2)
 })
@@ -27,7 +27,7 @@ test('blocks public signup and frontend service keys', () => {
 test('blocks localhost and incomplete legal details', () => {
   const errors = validateBetaEnvironment({
     ...valid,
-    VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+    VITE_NEON_AUTH_URL: 'http://127.0.0.1:54321',
     VITE_LEGAL_OPERATOR_NAME: 'TODO',
   })
   assert.equal(errors.length, 2)

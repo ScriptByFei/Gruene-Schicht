@@ -50,8 +50,8 @@ export default function PrivacyPage() {
             und kein Tracking zu Marketingzwecken.
           </Section>
           <Section title="Wo liegen die Daten?">
-            Die zentrale Datenbank und Anmeldung werden über das Supabase-Projekt in der Region
-            Frankfurt (EU) betrieben. Auf deinem Gerät speichert die App zuletzt synchronisierte
+            Die zentrale Datenbank und Anmeldung werden über Neon in der Region Frankfurt (EU)
+            betrieben. Auf deinem Gerät speichert die App zuletzt synchronisierte
             Identitäts-, Kalender- und Benachrichtigungsdaten bis zu 30 Tage für die Offline-Nutzung.
           </Section>
           <Section title="Deine Rechte und Kontrolle">

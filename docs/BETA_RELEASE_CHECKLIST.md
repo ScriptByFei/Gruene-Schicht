@@ -9,22 +9,22 @@ bewusst bestätigt wurde.
 - [ ] Rechtlich verantwortliche Person/Firma und ladungsfähige Kontaktdaten festlegen.
 - [ ] Datenschutzkontakt in der Beta-Umgebung eintragen.
 - [ ] Datenschutzerklärung mit der tatsächlichen betrieblichen Nutzung und Rechtsgrundlage prüfen.
-- [ ] Auftragsverarbeitungsvereinbarung (DPA/AVV) mit Supabase prüfen/abschließen.
+- [ ] Auftragsverarbeitungsvereinbarung (DPA/AVV) mit Neon prüfen/abschließen.
 - [ ] Frist für gelesene Benachrichtigungen festlegen; erst danach eine Löschroutine aktivieren.
 - [ ] Datenexport und Kontolöschung mit einem entbehrlichen Testkonto prüfen.
 
-## 2. Supabase-Staging
+## 2. Neon-Staging
 
-- [ ] Cloud-Migrationen und pgTAP-Tests sind aktuell und fehlerfrei.
-- [ ] Security Advisor zeigt keine Warnungen oder Fehler.
-- [ ] Öffentliche Auth-Registrierung ist im Supabase-Dashboard deaktiviert.
+- [ ] Neon-Migrationen sind auf einem isolierten Branch und anschließend auf Staging fehlerfrei angewendet.
+- [ ] Data API Advisor zeigt keine kritischen Sicherheits- oder Performanceprobleme.
+- [ ] Öffentliche Registrierung ist in Managed Better Auth eingeschränkt.
 - [ ] E-Mail-Bestätigung, sichere Passwortänderung und Bot-Schutz sind aktiviert.
 - [ ] Site URL und ausschließlich notwendige Redirect URLs auf die spätere Beta-Domain begrenzen.
 - [ ] Es befinden sich keine echten Nutzer- oder Produktivdaten in lokalen Seeds/Testskripten.
 
 ## 3. Egress- und Kostenbremse
 
-- [ ] Supabase Usage vor jeder Einladungswelle dokumentieren.
+- [ ] Neon Usage vor jeder Einladungswelle dokumentieren.
 - [ ] Ab 50 % des monatlichen Egress-Limits wöchentlich prüfen.
 - [ ] Ab 70 % keine zusätzlichen Beta-Einladungen senden.
 - [ ] Ab 85 % Registrierung geschlossen lassen und Datenabrufe untersuchen.

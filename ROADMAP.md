@@ -17,5 +17,5 @@ Benachrichtigungen und bereiten die Veröffentlichung vor.
 
 Die technische Umsetzung aller sieben Phasen ist abgeschlossen. Die App bleibt trotzdem
 unveröffentlicht, bis die Beta-Freigabecheckliste vollständig erfüllt und die Veröffentlichung
-ausdrücklich bestätigt wurde. Das Supabase-Cloudprojekt dient weiterhin als Staging-Umgebung;
+ausdrücklich bestätigt wurde. Das Neon-Projekt in Frankfurt dient weiterhin als Staging-Backend;
 die geschlossene Beta startet später per Einladung ohne öffentliche Selbstregistrierung.

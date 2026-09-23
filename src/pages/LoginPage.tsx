@@ -1,13 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { Link, useLocation } from 'react-router-dom'
+import { client } from '../lib/neon'
 import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import { runtimeConfig } from '../lib/runtimeConfig'
 
 export default function LoginPage() {
-  const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard'
 
@@ -20,13 +19,13 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await client.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
       setError('E-Mail oder Passwort ist falsch.')
       return
     }
-    navigate(from, { replace: true })
+    window.location.replace(from)
   }
 
   return (
