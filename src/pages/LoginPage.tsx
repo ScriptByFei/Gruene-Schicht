@@ -25,7 +25,7 @@ export default function LoginPage() {
       setError('E-Mail oder Passwort ist falsch.')
       return
     }
-    window.location.replace(from)
+    window.location.replace(`${import.meta.env.BASE_URL}${from.replace(/^\/+/, '')}`)
   }
 
   return (

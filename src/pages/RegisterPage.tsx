@@ -81,7 +81,7 @@ function OpenRegistration() {
       }
     }
 
-    window.location.replace('/dashboard')
+    window.location.replace(`${import.meta.env.BASE_URL}dashboard`)
   }
 
   return (
