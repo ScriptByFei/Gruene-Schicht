@@ -6,7 +6,7 @@ import { getLocalDateKey } from '../../lib/dateTime'
 import type { ShiftGroup, ShiftOverride } from '../../types'
 
 const symbolClasses: Record<ShiftSymbol, string> = {
-  F: 'bg-amber-400 text-white',
+  F: 'bg-yellow-400 text-yellow-950',
   S: 'bg-red-500 text-white',
   N: 'bg-blue-600 text-white',
   '-': 'bg-gray-100 text-gray-500',

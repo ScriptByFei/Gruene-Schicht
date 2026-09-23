@@ -89,6 +89,22 @@ ist.
 | `/profile` | Eingeloggt |
 | `/admin` | Nur Admins |
 
+## Schichtplan
+
+Alle vier Schichtgruppen folgen dem 28-Tage-Rhythmus `FFFSSS-SSSNN-----FFFNNNN----`.
+Der jeweilige Starttag ist Tag 1 (`F`). Der Kalender zeigt alle Gruppen gemeinsam oder einzeln;
+der farbige Punkt kennzeichnet die Gruppe, die Feldfarbe die Schichtart.
+
+| Gruppe | Starttag |
+|---|---|
+| Rot | 27.04.2026 |
+| Gelb | 13.04.2026 |
+| Blau | 20.04.2026 |
+| Grün | 04.05.2026 |
+
+`F` = Frühschicht (gelb), `S` = Spätschicht (rot), `N` = Nachtschicht (blau),
+`-` = frei (grau).
+
 ## Qualität
 
 ```bash

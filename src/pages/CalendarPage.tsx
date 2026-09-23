@@ -5,19 +5,22 @@ import { useAuth } from '../contexts/useAuth'
 import { cn } from '../lib/cn'
 import {
   getEffectiveShiftInfoForDate,
-  getShiftInfoForDate,
+  DEFAULT_SHIFT_PATTERN,
+  formatShiftStartDate,
   type ShiftInfo,
   type ShiftSymbol,
 } from '../lib/shifts'
 import { getScheduledEventsForRange } from '../services/events'
+import { getShiftGroups } from '../services/shiftGroups'
 import { getShiftOverrides } from '../services/shiftRequests'
 import { formatEventSchedule, getDateKeyInTimeZone, getLocalDateKey } from '../lib/dateTime'
-import type { Event, ShiftOverride } from '../types'
+import type { Event, ShiftGroup, ShiftGroupColor, ShiftOverride } from '../types'
 import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
 
 interface CalendarCache {
   events: Event[]
   shiftOverrides: ShiftOverride[]
+  groups?: ShiftGroup[]
 }
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
@@ -27,18 +30,33 @@ const calendarDayFormatter = new Intl.DateTimeFormat('de-DE', {
 })
 
 const shiftCellClass: Record<ShiftSymbol, string> = {
-  F: 'bg-amber-400 text-white',
+  F: 'bg-yellow-400 text-yellow-950',
   S: 'bg-red-500 text-white',
   N: 'bg-blue-600 text-white',
-  '-': 'bg-transparent text-gray-400 dark:text-slate-600',
+  '-': 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400',
+}
+
+const groupDotClass: Record<ShiftGroupColor, string> = {
+  red: 'bg-red-500',
+  yellow: 'bg-yellow-400',
+  blue: 'bg-blue-600',
+  green: 'bg-emerald-500',
+  purple: 'bg-purple-500',
+  orange: 'bg-orange-500',
+  gray: 'bg-gray-500',
+}
+
+interface GroupShift {
+  group: ShiftGroup
+  shift: ShiftInfo | null
+  override: ShiftOverride | null
 }
 
 interface CalendarDay {
   date: Date
   isToday: boolean
   isCurrentMonth: boolean
-  shift: ShiftInfo | null
-  override: ShiftOverride | null
+  groupShifts: GroupShift[]
 }
 interface CalendarWeek { weekNumber: number; days: (CalendarDay | null)[] }
 interface CalendarMonth { year: number; monthIndex: number; weeks: CalendarWeek[] }
@@ -60,8 +78,8 @@ function getIsoWeek(date: Date): number {
 function buildMonth(
   year: number,
   monthIndex: number,
-  shiftStartDate: string | null | undefined,
-  pattern: string | undefined,
+  groups: ShiftGroup[],
+  ownGroupId: string | undefined,
   overridesByDate: Map<string, ShiftOverride>
 ): CalendarMonth {
   const first = new Date(year, monthIndex, 1)
@@ -76,22 +94,28 @@ function buildMonth(
     const days = Array.from({ length: 7 }, (_, di): CalendarDay | null => {
       const date = addDays(monday, di)
       const isCurrentMonth = date.getMonth() === monthIndex
-      const override = isCurrentMonth
+      const ownOverride = isCurrentMonth
         ? overridesByDate.get(getLocalDateKey(date)) ?? null
         : null
       return {
         date,
         isToday: sameDay(date, today),
         isCurrentMonth,
-        shift: isCurrentMonth
-          ? getEffectiveShiftInfoForDate(
-              shiftStartDate,
-              date,
-              pattern,
-              override?.shift_symbol
-            )
-          : null,
-        override,
+        groupShifts: isCurrentMonth
+          ? groups.map((group) => {
+              const override = group.id === ownGroupId ? ownOverride : null
+              return {
+                group,
+                shift: getEffectiveShiftInfoForDate(
+                  group.anchor_date,
+                  date,
+                  group.pattern,
+                  override?.shift_symbol
+                ),
+                override,
+              }
+            })
+          : [],
       }
     })
     weeks.push({ weekNumber: getIsoWeek(monday), days })
@@ -106,48 +130,69 @@ const MONTH_NAMES = [
 
 function DayCell({ day, onSelect, isSelected, eventCount }: {
   day: CalendarDay | null
-  onSelect: (d: CalendarDay) => void
+  onSelect: (date: Date) => void
   isSelected: boolean
   eventCount: number
 }) {
-  if (!day || !day.isCurrentMonth) return <div className="h-8" />
-  const symbol = day.shift?.symbol ?? '-'
+  if (!day || !day.isCurrentMonth) return <div className="h-12" />
+  const onlyGroup = day.groupShifts.length === 1 ? day.groupShifts[0] : null
+  const symbol = onlyGroup?.shift?.symbol ?? '-'
   const isSunday = day.date.getDay() === 0
   return (
     <button
       type="button"
-      onClick={() => onSelect(day)}
-      aria-label={`${calendarDayFormatter.format(day.date)}: ${day.shift?.label ?? 'Keine Schicht'}${
+      onClick={() => onSelect(day.date)}
+      aria-label={`${calendarDayFormatter.format(day.date)}: ${day.groupShifts.map(({ group, shift }) => `${group.name}: ${shift?.label ?? 'Keine Schicht'}`).join(', ') || 'Keine Schichtgruppe'}${
         eventCount > 0 ? `, ${eventCount} Event${eventCount === 1 ? '' : 's'}` : ''
-      }${day.override ? `, genehmigter ${day.override.kind === 'swap' ? 'Schichttausch' : 'Abwesenheitstag'}` : ''}`}
+      }${day.groupShifts.some(({ override }) => override) ? ', genehmigte Schichtänderung' : ''}`}
       className={cn(
-        'relative h-8 w-full flex items-center justify-center rounded-sm text-xs font-bold transition-all select-none',
-        shiftCellClass[symbol],
-        day.isToday && 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-[#0f1f0f] z-10',
-        isSelected && !day.isToday && 'ring-2 ring-white/60 z-10',
-        symbol === '-' && isSunday && 'text-red-500 dark:text-red-400',
+        'relative h-12 w-full flex items-center justify-center rounded-md text-xs font-bold transition-all select-none',
+        onlyGroup ? shiftCellClass[symbol] : 'bg-white/70 dark:bg-slate-900/70',
+        day.isToday && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-offset-[#0f1f0f] z-10',
+        isSelected && !day.isToday && 'ring-2 ring-emerald-400 z-10',
+        onlyGroup && symbol === '-' && isSunday && 'text-red-500 dark:text-red-400',
       )}
     >
-      {symbol !== '-' && (
-        <span className="absolute top-0.5 left-1 text-[8px] font-medium opacity-80 leading-none">
-          {day.date.getDate()}
-        </span>
-      )}
-      {symbol === '-' ? day.date.getDate() : symbol}
+      {day.groupShifts.length > 1 ? (
+        <>
+          <span className="absolute top-0.5 left-1 text-[9px] leading-none text-gray-600 dark:text-slate-300">
+            {day.date.getDate()}
+          </span>
+          <span className="mt-2 grid w-full grid-cols-2 gap-0.5 px-0.5">
+            {day.groupShifts.map(({ group, shift }) => (
+              <span
+                key={group.id}
+                title={`${group.name}: ${shift?.label ?? 'Keine Schicht'}`}
+                className={cn('flex h-3 items-center justify-center gap-0.5 rounded-[2px] text-[8px] leading-none', shiftCellClass[shift?.symbol ?? '-'])}
+              >
+                <span className={cn('h-1 w-1 shrink-0 rounded-full ring-1 ring-white/70', groupDotClass[group.color])} />
+                {shift?.symbol === '-' ? '·' : shift?.symbol ?? '·'}
+              </span>
+            ))}
+          </span>
+        </>
+      ) : onlyGroup ? (
+        <>
+          <span className="absolute top-0.5 left-1 text-[9px] font-medium leading-none">
+            {day.date.getDate()}
+          </span>
+          <span className="pt-2">{symbol === '-' ? '—' : symbol}</span>
+        </>
+      ) : day.date.getDate()}
       {eventCount > 0 && (
         <span
           className={cn(
-            'absolute bottom-0.5 right-0.5 flex h-2 min-w-2 items-center justify-center rounded-full px-0.5 text-[6px] leading-none',
-            symbol === '-' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-700'
+            'absolute right-0.5 top-0.5 flex h-2 min-w-2 items-center justify-center rounded-full px-0.5 text-[6px] leading-none',
+            'bg-emerald-600 text-white'
           )}
           aria-hidden="true"
         >
           {eventCount > 1 ? eventCount : ''}
         </span>
       )}
-      {day.override && (
+      {day.groupShifts.some(({ override }) => override) && (
         <span
-          className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-violet-500 ring-1 ring-white"
+          className="absolute left-0.5 bottom-0.5 h-1.5 w-1.5 rounded-full bg-violet-500 ring-1 ring-white"
           aria-hidden="true"
         />
       )}
@@ -158,7 +203,7 @@ function DayCell({ day, onSelect, isSelected, eventCount }: {
 function MonthGrid({ month, selectedDate, onSelect, eventsByDate }: {
   month: CalendarMonth
   selectedDate: Date | null
-  onSelect: (d: CalendarDay) => void
+  onSelect: (date: Date) => void
   eventsByDate: Map<string, Event[]>
 }) {
   return (
@@ -200,6 +245,8 @@ export default function CalendarPage() {
   const userId = user?.id
   const organizationId = organization?.id
   const [today] = useState(() => new Date())
+  const [groups, setGroups] = useState<ShiftGroup[]>(shiftGroup ? [shiftGroup] : [])
+  const [selectedGroupId, setSelectedGroupId] = useState('all')
   const [events, setEvents] = useState<Event[]>([])
   const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -207,13 +254,14 @@ export default function CalendarPage() {
   const [usingCachedData, setUsingCachedData] = useState(false)
 
   const [year, setYear] = useState(today.getFullYear())
-  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>({
-    date: today,
-    isToday: true,
-    isCurrentMonth: true,
-    shift: getShiftInfoForDate(shiftGroup?.anchor_date, today, shiftGroup?.pattern),
-    override: null,
-  })
+  const [selectedDay, setSelectedDay] = useState<Date | null>(today)
+
+  const visibleGroups = useMemo(
+    () => selectedGroupId === 'all'
+      ? groups
+      : groups.filter((group) => group.id === selectedGroupId),
+    [groups, selectedGroupId]
+  )
 
   const overridesByDate = useMemo(
     () => new Map(shiftOverrides.map((override) => [override.shift_date, override])),
@@ -226,12 +274,12 @@ export default function CalendarPage() {
       (_, i) => buildMonth(
         year,
         i,
-        shiftGroup?.anchor_date,
-        shiftGroup?.pattern,
+        visibleGroups,
+        shiftGroup?.id,
         overridesByDate
       )
     ),
-    [year, shiftGroup?.anchor_date, shiftGroup?.pattern, overridesByDate]
+    [year, visibleGroups, shiftGroup?.id, overridesByDate]
   )
 
   useEffect(() => {
@@ -241,6 +289,7 @@ export default function CalendarPage() {
       if (!organizationId || !userId) {
         setEvents([])
         setShiftOverrides([])
+        setGroups([])
         setEventsLoading(false)
         return
       }
@@ -250,17 +299,20 @@ export default function CalendarPage() {
       try {
         const rangeStart = new Date(year, 0, 1).toISOString()
         const rangeEnd = new Date(year + 1, 0, 1).toISOString()
-        const [nextEvents, nextOverrides] = await Promise.all([
+        const [nextEvents, nextOverrides, nextGroups] = await Promise.all([
           getScheduledEventsForRange(organizationId, rangeStart, rangeEnd),
           getShiftOverrides(organizationId, userId, `${year}-01-01`, `${year}-12-31`),
+          getShiftGroups(organizationId),
         ])
         if (!cancelled) {
           setEvents(nextEvents)
           setShiftOverrides(nextOverrides)
+          setGroups(nextGroups)
           setUsingCachedData(false)
           writeOfflineCache<CalendarCache>(userId, `calendar:${organizationId}:${year}`, {
             events: nextEvents,
             shiftOverrides: nextOverrides,
+            groups: nextGroups,
           })
         }
       } catch {
@@ -272,6 +324,7 @@ export default function CalendarPage() {
           if (cached) {
             setEvents(cached.events)
             setShiftOverrides(cached.shiftOverrides)
+            setGroups(cached.groups ?? (shiftGroup ? [shiftGroup] : []))
             setUsingCachedData(true)
             setEventsError('Offline – zuletzt synchronisierte Kalenderdaten werden angezeigt.')
           } else {
@@ -285,7 +338,7 @@ export default function CalendarPage() {
 
     void loadCalendarData()
     return () => { cancelled = true }
-  }, [organizationId, userId, year])
+  }, [organizationId, userId, year, shiftGroup])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, Event[]>()
@@ -317,26 +370,28 @@ export default function CalendarPage() {
   }, [year, today])
 
   const shiftDetailClass: Record<ShiftSymbol, string> = {
-    F: 'bg-amber-400 text-white',
+    F: 'bg-yellow-400 text-yellow-950',
     S: 'bg-red-500 text-white',
     N: 'bg-blue-600 text-white',
     '-': 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400',
   }
 
   const selectedOverride = selectedDay
-    ? overridesByDate.get(getLocalDateKey(selectedDay.date)) ?? null
+    ? overridesByDate.get(getLocalDateKey(selectedDay)) ?? null
     : null
-  const selectedShift = selectedDay
-    ? getEffectiveShiftInfoForDate(
-        shiftGroup?.anchor_date,
-        selectedDay.date,
-        shiftGroup?.pattern,
-        selectedOverride?.shift_symbol
-      )
-    : null
-  const selectedSymbol = selectedShift?.symbol ?? '-'
+  const selectedGroupShifts = selectedDay
+    ? visibleGroups.map((group) => ({
+        group,
+        shift: getEffectiveShiftInfoForDate(
+          group.anchor_date,
+          selectedDay,
+          group.pattern,
+          group.id === shiftGroup?.id ? selectedOverride?.shift_symbol : undefined
+        ),
+      }))
+    : []
   const selectedEvents = selectedDay
-    ? eventsByDate.get(getLocalDateKey(selectedDay.date)) ?? []
+    ? eventsByDate.get(getLocalDateKey(selectedDay)) ?? []
     : []
 
   const changeYear = (nextYear: number) => {
@@ -347,11 +402,11 @@ export default function CalendarPage() {
   return (
     <div className="mx-auto max-w-md pb-48 sm:pb-6">
 
-      {!shiftGroup && (
+      {!shiftGroup && organization && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-900">Noch keine Schichtgruppe zugeordnet</p>
+          <p className="text-sm font-medium text-amber-900">Deine Schichtgruppe ist noch nicht zugeordnet</p>
           <p className="mt-1 text-xs text-amber-700">
-            Ein Admin deines Betriebs kann die Zuordnung im Admin-Bereich vornehmen.
+            Du kannst den Plan aller Gruppen ansehen. Ein Admin kann deine persönliche Zuordnung im Admin-Bereich vornehmen.
           </p>
         </div>
       )}
@@ -361,6 +416,67 @@ export default function CalendarPage() {
           'mb-4 rounded-xl px-4 py-3 text-sm',
           usingCachedData ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-600'
         )}>{eventsError}</p>
+      )}
+
+      {groups.length > 0 && (
+        <section className="mb-5 rounded-2xl border border-gray-200 bg-white/80 p-3 dark:border-slate-700 dark:bg-slate-900/70" aria-label="Schichtgruppen und Legende">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Schichtplan</h2>
+            <span className="text-xs text-gray-500 dark:text-slate-400">{groups.length} Gruppen</span>
+          </div>
+          {groups.every((group) => group.pattern === DEFAULT_SHIFT_PATTERN) && (
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-slate-400">
+              {DEFAULT_SHIFT_PATTERN.length}-Tage-Rhythmus: <code className="font-mono">{DEFAULT_SHIFT_PATTERN}</code>
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Schichtgruppe anzeigen">
+            <button
+              type="button"
+              onClick={() => setSelectedGroupId('all')}
+              aria-pressed={selectedGroupId === 'all'}
+              className={cn('rounded-full border px-3 py-1.5 text-xs font-medium', selectedGroupId === 'all'
+                ? 'border-emerald-700 bg-emerald-700 text-white'
+                : 'border-gray-200 text-gray-700 dark:border-slate-700 dark:text-slate-300')}
+            >
+              Alle
+            </button>
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                onClick={() => setSelectedGroupId(group.id)}
+                aria-pressed={selectedGroupId === group.id}
+                className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium', selectedGroupId === group.id
+                  ? 'border-emerald-700 bg-emerald-700 text-white'
+                  : 'border-gray-200 text-gray-700 dark:border-slate-700 dark:text-slate-300')}
+              >
+                <span className={cn('h-2 w-2 rounded-full', groupDotClass[group.color])} />
+                {group.name}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-gray-600 dark:text-slate-300">
+            {groups.map((group, index) => (
+              <span key={group.id} className="flex items-center gap-1.5">
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', groupDotClass[group.color])} />
+                {index + 1}. {group.name}: Start {formatShiftStartDate(group.anchor_date)}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-gray-500 dark:text-slate-400">
+            Im Tagesfeld stehen die Gruppen in dieser Reihenfolge: links oben bis rechts unten. Der Punkt zeigt die Gruppe, die Feldfarbe die Schichtart.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-gray-100 pt-2 text-[11px] dark:border-slate-700">
+            {(['F', 'S', 'N', '-'] as ShiftSymbol[]).map((symbol) => (
+              <span key={symbol} className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
+                <span className={cn('inline-flex h-4 min-w-4 items-center justify-center rounded px-0.5 text-[9px] font-bold', shiftCellClass[symbol])}>
+                  {symbol === '-' ? '—' : symbol}
+                </span>
+                {{ F: 'Früh', S: 'Spät', N: 'Nacht', '-': 'Frei' }[symbol]}
+              </span>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Jahr-Navigation */}
@@ -388,7 +504,7 @@ export default function CalendarPage() {
           >
             <MonthGrid
               month={month}
-              selectedDate={selectedDay?.date ?? null}
+              selectedDate={selectedDay}
               onSelect={setSelectedDay}
               eventsByDate={eventsByDate}
             />
@@ -405,17 +521,27 @@ export default function CalendarPage() {
                 Ausgewählter Tag
               </p>
               <p className="text-base font-semibold text-gray-900 dark:text-slate-50 capitalize">
-                {new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(selectedDay.date)}
+                {new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(selectedDay)}
               </p>
             </div>
-            <div className={cn('flex items-center justify-center w-12 h-12 rounded-xl text-lg font-bold', shiftDetailClass[selectedSymbol])}>
-              {selectedSymbol === '-' ? '—' : selectedSymbol}
-            </div>
           </div>
-          {selectedShift?.label && (
-            <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{selectedShift.label}</p>
+          {selectedGroupShifts.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {selectedGroupShifts.map(({ group, shift }) => (
+                <div key={group.id} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 dark:bg-slate-900/70">
+                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', groupDotClass[group.color])} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-gray-800 dark:text-slate-100">{group.name}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-400">{shift?.label ?? 'Keine Schicht'}</p>
+                  </div>
+                  <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold', shiftDetailClass[shift?.symbol ?? '-'])}>
+                    {shift?.symbol === '-' ? '—' : shift?.symbol ?? '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
-          {selectedOverride && (
+          {selectedOverride && visibleGroups.some((group) => group.id === shiftGroup?.id) && (
             <p className="mt-2 inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-800">
               {selectedOverride.kind === 'swap'
                 ? 'Genehmigter Schichttausch'
