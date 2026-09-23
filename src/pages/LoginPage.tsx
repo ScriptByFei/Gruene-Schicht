@@ -40,7 +40,7 @@ export default function LoginPage() {
           <div className="relative mb-6">
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center pixel-shadow glow-green">
               <img
-                src="/logo.svg"
+                src={`${import.meta.env.BASE_URL}logo.svg`}
                 alt="Grüne Schicht"
                 className="w-10 h-10 brightness-0 invert"
               />
