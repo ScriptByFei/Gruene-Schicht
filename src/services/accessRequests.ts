@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type {
   OrganizationAccessRequest,
   OrganizationAccessRequestWithProfile,
@@ -7,9 +7,9 @@ import type {
 export async function getMyAccessRequest(
   userId: string
 ): Promise<OrganizationAccessRequest | null> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('organization_access_requests')
-    .select('*')
+    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -18,7 +18,7 @@ export async function getMyAccessRequest(
 }
 
 export async function requestOrganizationAccess(): Promise<void> {
-  const { error } = await supabase.rpc('request_organization_access', {
+  const { error } = await client.rpc('request_organization_access', {
     p_organization_slug: 'gruene-schicht',
   })
   if (error) throw error
@@ -27,17 +27,18 @@ export async function requestOrganizationAccess(): Promise<void> {
 export async function getPendingAccessRequests(
   organizationId: string
 ): Promise<OrganizationAccessRequestWithProfile[]> {
-  const { data: requests, error: requestError } = await supabase
+  const { data: requests, error: requestError } = await client
     .from('organization_access_requests')
-    .select('*')
+    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('organization_id', organizationId)
     .eq('status', 'pending')
     .order('requested_at')
+    .limit(100)
 
   if (requestError) throw requestError
   if (!requests?.length) return []
 
-  const { data: profiles, error: profileError } = await supabase
+  const { data: profiles, error: profileError } = await client
     .from('profile_directory')
     .select('id, display_name')
     .in('id', requests.map((request) => request.user_id))
@@ -56,7 +57,7 @@ export async function reviewAccessRequest(
   approve: boolean,
   shiftGroupId?: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('review_organization_access_request', {
+  const { error } = await client.rpc('review_organization_access_request', {
     p_request_id: requestId,
     p_approve: approve,
     ...(shiftGroupId ? { p_shift_group_id: shiftGroupId } : {}),

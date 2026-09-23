@@ -6,6 +6,23 @@ import {
 } from './shifts'
 
 describe('getShiftInfoForDate', () => {
+  it('uses the 28-day rhythm for all four group start dates', () => {
+    expect(DEFAULT_SHIFT_PATTERN).toBe('FFFSSS-SSSNN-----FFFNNNN----')
+    expect(DEFAULT_SHIFT_PATTERN).toHaveLength(28)
+
+    for (const startDate of ['2026-04-27', '2026-04-13', '2026-04-20', '2026-05-04']) {
+      const [year, month, day] = startDate.split('-').map(Number)
+      expect(getShiftInfoForDate(startDate, new Date(year, month - 1, day))?.symbol).toBe('F')
+      expect(getShiftInfoForDate(startDate, new Date(year, month - 1, day + 28))?.symbol).toBe('F')
+    }
+
+    const commonDay = new Date(2026, 4, 4)
+    expect(getShiftInfoForDate('2026-04-27', commonDay)?.symbol).toBe('S')
+    expect(getShiftInfoForDate('2026-04-13', commonDay)?.symbol).toBe('N')
+    expect(getShiftInfoForDate('2026-04-20', commonDay)?.symbol).toBe('-')
+    expect(getShiftInfoForDate('2026-05-04', commonDay)?.symbol).toBe('F')
+  })
+
   it('starts on the first day of the configured pattern', () => {
     expect(getShiftInfoForDate('2026-04-27', new Date(2026, 3, 27))).toEqual({
       symbol: 'F',

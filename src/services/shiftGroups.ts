@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type {
   OrganizationMemberWithProfile,
   ShiftGroup,
@@ -14,7 +14,7 @@ export interface ShiftGroupInput {
 }
 
 export async function getShiftGroups(organizationId: string): Promise<ShiftGroup[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('shift_groups')
     .select('*')
     .eq('organization_id', organizationId)
@@ -28,7 +28,7 @@ export async function getShiftGroups(organizationId: string): Promise<ShiftGroup
 export async function getOrganizationMembers(
   organizationId: string
 ): Promise<OrganizationMemberWithProfile[]> {
-  const { data: memberships, error: membershipError } = await supabase
+  const { data: memberships, error: membershipError } = await client
     .from('organization_members')
     .select('*')
     .eq('organization_id', organizationId)
@@ -37,7 +37,7 @@ export async function getOrganizationMembers(
   if (membershipError) throw membershipError
   if (!memberships?.length) return []
 
-  const { data: profiles, error: profileError } = await supabase
+  const { data: profiles, error: profileError } = await client
     .from('profile_directory')
     .select('id, display_name')
     .in('id', memberships.map((membership) => membership.user_id))
@@ -55,7 +55,7 @@ export async function createShiftGroup(
   organizationId: string,
   input: ShiftGroupInput
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('shift_groups')
     .insert({ ...input, organization_id: organizationId })
 
@@ -63,7 +63,7 @@ export async function createShiftGroup(
 }
 
 export async function updateShiftGroup(id: string, input: ShiftGroupInput): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('shift_groups')
     .update({ ...input, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -72,7 +72,7 @@ export async function updateShiftGroup(id: string, input: ShiftGroupInput): Prom
 }
 
 export async function deleteShiftGroup(id: string): Promise<void> {
-  const { error } = await supabase.from('shift_groups').delete().eq('id', id)
+  const { error } = await client.from('shift_groups').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -81,7 +81,7 @@ export async function assignMemberShiftGroup(
   userId: string,
   shiftGroupId: string | null
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('organization_members')
     .update({ shift_group_id: shiftGroupId })
     .eq('organization_id', organizationId)
@@ -95,7 +95,7 @@ export async function updateMemberRole(
   userId: string,
   role: 'employee' | 'admin'
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('organization_members')
     .update({ role })
     .eq('organization_id', organizationId)
@@ -109,7 +109,7 @@ export async function updateMemberStatus(
   userId: string,
   status: 'active' | 'disabled'
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('organization_members')
     .update({ status })
     .eq('organization_id', organizationId)

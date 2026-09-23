@@ -1,74 +1,47 @@
-import { execFileSync } from 'node:child_process'
-import { basename } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import pg from 'pg'
 
-const TARGET_EMAIL = process.argv[2] ?? 'local-test-gruene-schicht@example.com'
-const databaseContainer = `supabase_db_${basename(process.cwd())}`
-
-function runLocalSql(sql) {
-  return execFileSync(
-    'docker',
-    [
-      'exec',
-      '-i',
-      databaseContainer,
-      'psql',
-      '-U',
-      'postgres',
-      '-d',
-      'postgres',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-v',
-      `target_email=${TARGET_EMAIL}`,
-      '-At',
-    ],
-    { encoding: 'utf8', input: sql, stdio: ['pipe', 'pipe', 'pipe'] }
-  ).trim()
+function readEnvFile(path) {
+  return Object.fromEntries(readFileSync(path, 'utf8')
+    .split(/\r?\n/)
+    .map((line) => line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/))
+    .filter(Boolean)
+    .map((match) => [match[1], match[2].trim().replace(/^['"]|['"]$/g, '')]))
 }
 
+const targetEmail = process.argv[2] ?? 'local-test-gruene-schicht@example.com'
+const env = { ...readEnvFile(resolve(process.cwd(), '.env.local')), ...process.env }
+
+if (!env.DATABASE_URL_UNPOOLED) {
+  console.error('DATABASE_URL_UNPOOLED fehlt. Führe zuerst `neon env pull` aus.')
+  process.exit(1)
+}
+
+const connectionString = env.DATABASE_URL_UNPOOLED.replace('sslmode=require', 'sslmode=verify-full')
+const client = new pg.Client({ connectionString })
+await client.connect()
+
 try {
-  const userId = runLocalSql(`
-    select id
-    from auth.users
-    where lower(email) = lower(:'target_email')
-    limit 1;
-  `)
-
-  if (!userId) {
-    console.error(`User not found in local Supabase: ${TARGET_EMAIL}`)
-    process.exit(1)
-  }
-
-  const membership = runLocalSql(`
-    insert into public.organization_members (
-      organization_id,
-      user_id,
-      role,
-      status
-    )
+  const result = await client.query(`
+    insert into public.organization_members (organization_id, user_id, role, status)
     select organization.id, auth_user.id, 'admin', 'active'
     from public.organizations as organization
-    cross join auth.users as auth_user
+    cross join neon_auth."user" as auth_user
     where organization.slug = 'gruene-schicht'
-      and lower(auth_user.email) = lower(:'target_email')
+      and lower(auth_user.email) = lower($1)
     on conflict (organization_id, user_id) do update
-    set role = excluded.role,
-        status = excluded.status
-    returning organization_id || '|' || role;
-  `)
+      set role = excluded.role,
+          status = excluded.status
+    returning organization_id, role
+  `, [targetEmail])
 
-  if (!membership) {
-    console.error('Local organization gruene-schicht was not found.')
-    process.exit(1)
+  if (!result.rowCount) {
+    throw new Error(`Neon-Nutzer oder Organisation nicht gefunden: ${targetEmail}`)
   }
 
-  const [organizationId, role] = membership.split(/\r?\n/)[0].split('|')
-  console.log(`Updated ${TARGET_EMAIL} to role=${role}`)
-  console.log(`Organization: Grüne Schicht (${organizationId})`)
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error)
-  console.error('Could not update the local test user.')
-  console.error('Make sure Docker Desktop and local Supabase are running.')
-  console.error(message)
-  process.exit(1)
+  console.log(`Updated ${targetEmail} to role=${result.rows[0].role}`)
+  console.log(`Organization: Grüne Schicht (${result.rows[0].organization_id})`)
+} finally {
+  await client.end()
 }

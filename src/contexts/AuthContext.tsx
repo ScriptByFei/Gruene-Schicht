@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import type { Organization, OrganizationMembership, Profile, ShiftGroup } from '../types'
-import { supabase } from '../lib/supabase'
+import { client, type AuthSession } from '../lib/neon'
 import { getProfile } from '../services/profiles'
 import { getPrimaryOrganization } from '../services/organizations'
 import { AuthContext } from './auth-context'
@@ -17,7 +16,7 @@ interface CachedIdentity {
 const IDENTITY_CACHE_KEY = 'identity'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<AuthSession | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [membership, setMembership] = useState<OrganizationMembership | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -58,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    client.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session?.user) {
         void loadIdentity(session.user.id)
@@ -69,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session?.user) {
         setLoading(true)

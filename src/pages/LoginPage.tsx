@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { Link, useLocation } from 'react-router-dom'
+import { client } from '../lib/neon'
 import { Input } from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
+import { runtimeConfig } from '../lib/runtimeConfig'
+import { appRouteUrl } from '../lib/appRouteUrl'
 
 export default function LoginPage() {
-  const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard'
 
@@ -19,13 +20,13 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await client.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
       setError('E-Mail oder Passwort ist falsch.')
       return
     }
-    navigate(from, { replace: true })
+    window.location.replace(appRouteUrl(from))
   }
 
   return (
@@ -40,7 +41,7 @@ export default function LoginPage() {
           <div className="relative mb-6">
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center pixel-shadow glow-green">
               <img
-                src="/logo.svg"
+                src={`${import.meta.env.BASE_URL}logo.svg`}
                 alt="Grüne Schicht"
                 className="w-10 h-10 brightness-0 invert"
               />
@@ -91,10 +92,21 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-gray-400 dark:text-emerald-700">
-          Noch kein Konto?{' '}
-          <Link to="/register" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
-            Registrieren
+        {runtimeConfig.registrationEnabled ? (
+          <p className="mt-4 text-center text-xs text-gray-400 dark:text-emerald-700">
+            Noch kein Konto?{' '}
+            <Link to="/register" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
+              Registrieren
+            </Link>
+          </p>
+        ) : (
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            Geschlossene Beta · Konten werden nur nach Einladung freigeschaltet.
+          </p>
+        )}
+        <p className="mt-3 text-center text-xs">
+          <Link to="/privacy" className="text-gray-500 underline-offset-2 hover:underline dark:text-gray-400">
+            Datenschutz
           </Link>
         </p>
       </div>

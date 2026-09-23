@@ -3,7 +3,6 @@ import { Plus, ChevronDown, ChevronUp, Trash2, Lock, Unlock, X, Pencil } from 'l
 import { useAuth } from '../contexts/useAuth'
 import { getAllEvents, createEvent, updateEvent, setEventStatus, deleteEvent } from '../services/events'
 import { getPollsForEvent, createPoll, togglePollOpen, deletePoll } from '../services/polls'
-import { getAttendanceSummary } from '../services/attendance'
 import { getSuggestionsForEvent, updateSuggestionStatus } from '../services/suggestions'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Input, Textarea, Select } from '../components/ui/Input'
@@ -16,12 +15,18 @@ import { cn } from '../lib/cn'
 import ShiftGroupManagement from '../components/admin/ShiftGroupManagement'
 import AccessRequestManagement from '../components/admin/AccessRequestManagement'
 import { formatEventSchedule, fromDateTimeLocalValue, toDateTimeLocalValue } from '../lib/dateTime'
+import { getAdminEventOverview } from '../services/monitoring'
+import BetaHealthCard from '../components/admin/BetaHealthCard'
 
 interface EventWithData {
   event: Event
   polls: Poll[]
   attendance: AttendanceSummary
   suggestions: Suggestion[]
+  pendingSuggestions: number
+  pollCount: number
+  detailsLoaded: boolean
+  detailsLoading: boolean
 }
 
 export default function AdminPage() {
@@ -53,25 +58,76 @@ export default function AdminPage() {
     final_note: '',
   })
 
-  const loadData = useCallback(async () => {
-    const events = await getAllEvents()
-    const withData = await Promise.all(
-      events.map(async (event) => {
-        const [polls, attendance, suggestions] = await Promise.all([
-          getPollsForEvent(event.id),
-          getAttendanceSummary(event.id),
-          getSuggestionsForEvent(event.id),
-        ])
-        return {
-          event,
-          polls,
-          attendance,
-          suggestions,
-        }
-      })
-    )
+  const loadData = useCallback(async (detailEventId?: string) => {
+    if (!organization) {
+      setEventsWithData([])
+      return
+    }
+    const [events, overview] = await Promise.all([
+      getAllEvents(),
+      getAdminEventOverview(organization.id),
+    ])
+    const overviewByEvent = new Map(overview.map((item) => [item.event_id, item]))
+    const withData: EventWithData[] = events.map((event) => {
+      const summary = overviewByEvent.get(event.id)
+      const attending = summary?.attending ?? 0
+      const maybe = summary?.maybe ?? 0
+      const declined = summary?.declined ?? 0
+      return {
+        event,
+        polls: [],
+        attendance: { attending, maybe, declined, total: attending + maybe + declined },
+        suggestions: [],
+        pendingSuggestions: summary?.pending_suggestions ?? 0,
+        pollCount: summary?.poll_count ?? 0,
+        detailsLoaded: false,
+        detailsLoading: false,
+      }
+    })
+
+    if (detailEventId && events.some((event) => event.id === detailEventId)) {
+      const [polls, suggestions] = await Promise.all([
+        getPollsForEvent(detailEventId),
+        getSuggestionsForEvent(detailEventId),
+      ])
+      const detail = withData.find((item) => item.event.id === detailEventId)
+      if (detail) {
+        detail.polls = polls
+        detail.suggestions = suggestions
+        detail.detailsLoaded = true
+      }
+    }
     setEventsWithData(withData)
-  }, [])
+  }, [organization])
+
+  const expandEvent = async (eventId: string, isExpanded: boolean) => {
+    if (isExpanded) {
+      setExpandedEventId(null)
+      return
+    }
+    setExpandedEventId(eventId)
+    const target = eventsWithData.find((item) => item.event.id === eventId)
+    if (!target || target.detailsLoaded || target.detailsLoading) return
+    setEventsWithData((current) => current.map((item) =>
+      item.event.id === eventId ? { ...item, detailsLoading: true } : item
+    ))
+    try {
+      const [polls, suggestions] = await Promise.all([
+        getPollsForEvent(eventId),
+        getSuggestionsForEvent(eventId),
+      ])
+      setEventsWithData((current) => current.map((item) =>
+        item.event.id === eventId
+          ? { ...item, polls, suggestions, detailsLoaded: true, detailsLoading: false }
+          : item
+      ))
+    } catch {
+      setError('Eventdetails konnten nicht geladen werden.')
+      setEventsWithData((current) => current.map((item) =>
+        item.event.id === eventId ? { ...item, detailsLoading: false } : item
+      ))
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -112,7 +168,7 @@ export default function AdminPage() {
   const handleStatusChange = async (eventId: string, status: EventStatus) => {
     try {
       await setEventStatus(eventId, status)
-      await loadData()
+      await loadData(eventId)
     } catch {
       setError('Status konnte nicht geändert werden.')
     }
@@ -128,7 +184,7 @@ export default function AdminPage() {
     try {
       await updateEvent(eventId, editEvent)
       setEditingEventId(null)
-      await loadData()
+      await loadData(eventId)
     } catch {
       setError('Event konnte nicht gespeichert werden.')
     }
@@ -165,7 +221,7 @@ export default function AdminPage() {
       )
       setNewPoll({ title: '', description: '', type: 'single_choice', optionsText: '' })
       setShowPollForm(null)
-      await loadData()
+      await loadData(eventId)
     } catch {
       setError('Umfrage konnte nicht erstellt werden.')
     }
@@ -194,7 +250,7 @@ export default function AdminPage() {
         final_note: finalForm.final_note || null,
       })
       setShowFinalForm(null)
-      await loadData()
+      await loadData(eventId)
     } catch {
       setError('Finale Entscheidung konnte nicht gespeichert werden.')
     }
@@ -224,6 +280,7 @@ export default function AdminPage() {
 
       {organization && (
         <>
+          <BetaHealthCard organizationId={organization.id} />
           <AccessRequestManagement
             organizationId={organization.id}
             onMemberChanged={() => setMemberRefreshKey((current) => current + 1)}
@@ -279,16 +336,23 @@ export default function AdminPage() {
         {eventsWithData.length === 0 && (
           <p className="text-sm text-gray-400 text-center py-8">Noch keine Events vorhanden</p>
         )}
-        {eventsWithData.map(({ event, polls, attendance, suggestions }) => {
+        {eventsWithData.map(({ event, polls, attendance, suggestions, pendingSuggestions, pollCount, detailsLoaded, detailsLoading }) => {
           const isExpanded = expandedEventId === event.id
-          const pendingSuggestions = suggestions.filter((s) => s.status === 'pending').length
 
           return (
             <Card key={event.id} padding="none">
               {/* Event Header */}
               <div
                 className="flex items-start justify-between gap-3 p-5 cursor-pointer"
-                onClick={() => setExpandedEventId(isExpanded ? null : event.id)}
+                onClick={() => void expandEvent(event.id, isExpanded)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(keyboardEvent) => {
+                  if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                    keyboardEvent.preventDefault()
+                    void expandEvent(event.id, isExpanded)
+                  }
+                }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center flex-wrap gap-2 mb-1">
@@ -299,7 +363,7 @@ export default function AdminPage() {
                   </div>
                   <h3 className="font-semibold text-gray-900">{event.title}</h3>
                   <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500 sm:flex sm:flex-wrap sm:gap-4">
-                    <span>{polls.length} Umfrage{polls.length !== 1 ? 'n' : ''}</span>
+                    <span>{pollCount} Umfrage{pollCount !== 1 ? 'n' : ''}</span>
                     <span className="text-emerald-600">{attendance.attending} dabei</span>
                     <span className="text-amber-600">{attendance.maybe} vielleicht</span>
                     <span className="text-red-500">{attendance.declined} abgesagt</span>
@@ -313,6 +377,7 @@ export default function AdminPage() {
 
               {isExpanded && (
                 <div className="border-t border-gray-100 p-5 flex flex-col gap-5">
+                  {detailsLoading && <p className="text-sm text-gray-500">Eventdetails werden geladen …</p>}
                   {/* Event edit/delete actions */}
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
@@ -452,7 +517,9 @@ export default function AdminPage() {
                       </Card>
                     )}
 
-                    {polls.length === 0 ? (
+                    {!detailsLoaded ? (
+                      <p className="text-xs text-gray-400">Details werden bei Bedarf geladen.</p>
+                    ) : polls.length === 0 ? (
                       <p className="text-xs text-gray-400">Keine Umfragen</p>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -471,14 +538,14 @@ export default function AdminPage() {
                             </div>
                             <div className="flex gap-1">
                               <button
-                                onClick={() => togglePollOpen(poll.id, !poll.is_open).then(loadData)}
+                                onClick={() => togglePollOpen(poll.id, !poll.is_open).then(() => loadData(event.id))}
                                 className="p-1.5 rounded-md text-gray-500 hover:bg-white hover:text-gray-800 transition-colors"
                                 title={poll.is_open ? 'Schließen' : 'Öffnen'}
                               >
                                 {poll.is_open ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                               </button>
                               <button
-                                onClick={() => deletePoll(poll.id).then(loadData)}
+                                onClick={() => deletePoll(poll.id).then(() => loadData(event.id))}
                                 className="p-1.5 rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                                 title="Löschen"
                               >
@@ -514,14 +581,14 @@ export default function AdminPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => updateSuggestionStatus(s.id, 'approved').then(loadData)}
+                                  onClick={() => updateSuggestionStatus(s.id, 'approved').then(() => loadData(event.id))}
                                 >
                                   Annehmen
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => updateSuggestionStatus(s.id, 'rejected').then(loadData)}
+                                  onClick={() => updateSuggestionStatus(s.id, 'rejected').then(() => loadData(event.id))}
                                 >
                                   Ablehnen
                                 </Button>

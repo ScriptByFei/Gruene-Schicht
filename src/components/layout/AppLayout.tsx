@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ArrowLeftRight, Bell, CalendarDays, LayoutDashboard, LogOut, Settings, User, WifiOff } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { client } from '../../lib/neon'
 import { useAuth } from '../../contexts/useAuth'
 import { cn } from '../../lib/cn'
 import ThemeToggle from '../ui/ThemeToggle'
@@ -26,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     if (user) clearOfflineCache(user.id)
-    await supabase.auth.signOut()
+    await client.auth.signOut()
     navigate('/login')
   }
 

@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { client } from '../lib/neon'
 import type { AttendanceSummary, AttendanceStatus, EventAttendance, EventAttendee } from '../types'
 
 export async function getUserAttendanceForEvents(
@@ -7,17 +7,18 @@ export async function getUserAttendanceForEvents(
 ): Promise<EventAttendance[]> {
   if (eventIds.length === 0) return []
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('event_attendance')
-    .select('*')
+    .select('id, event_id, user_id, status, created_at, updated_at')
     .eq('user_id', userId)
     .in('event_id', eventIds)
+    .limit(100)
   if (error) throw error
   return (data ?? []) as EventAttendance[]
 }
 
 export async function getAttendanceSummary(eventId: string): Promise<AttendanceSummary> {
-  const { data, error } = await supabase.rpc('get_attendance_summary', {
+  const { data, error } = await client.rpc('get_attendance_summary', {
     p_event_id: eventId,
   })
   if (error) throw error
@@ -32,7 +33,7 @@ export async function getAttendanceSummary(eventId: string): Promise<AttendanceS
 }
 
 export async function getEventAttendeeRoster(eventId: string): Promise<EventAttendee[]> {
-  const { data, error } = await supabase.rpc('get_event_attendee_roster', {
+  const { data, error } = await client.rpc('get_event_attendee_roster', {
     p_event_id: eventId,
   })
   if (error) throw error
@@ -43,9 +44,9 @@ export async function getUserAttendance(
   eventId: string,
   userId: string
 ): Promise<EventAttendance | null> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('event_attendance')
-    .select('*')
+    .select('id, event_id, user_id, status, created_at, updated_at')
     .eq('event_id', eventId)
     .eq('user_id', userId)
     .maybeSingle()
@@ -58,7 +59,7 @@ export async function setAttendance(
   userId: string,
   status: AttendanceStatus
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from('event_attendance')
     .upsert(
       { event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() },

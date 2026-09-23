@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <title>Grüne Schicht – Weiterleitung</title>
+    <script>
+      const base = '/Gruene-Schicht/'
+      const route = location.pathname.startsWith(base)
+        ? location.pathname.slice(base.length).replace(/^\/+/, '')
+        : ''
+      location.replace(`${base}#/${route}${location.search}`)
+    </script>
+  </head>
+  <body>
+    <a href="/Gruene-Schicht/">Zur Grüne-Schicht-App</a>
+  </body>
+</html>
