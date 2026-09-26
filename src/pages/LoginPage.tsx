@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import { runtimeConfig } from '../lib/runtimeConfig'
 import { appRouteUrl } from '../lib/appRouteUrl'
+import { emailLinkAuth } from '../lib/emailLinkAuth'
 
 export default function LoginPage() {
   const location = useLocation()
@@ -15,6 +16,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [method, setMethod] = useState<'email-link' | 'password'>(
+    runtimeConfig.emailLinkEnabled ? 'email-link' : 'password'
+  )
+  const [linkSent, setLinkSent] = useState(false)
+
+  const handleEmailLink = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const { error: sendError } = await emailLinkAuth.signIn.magicLink({
+        email: email.trim(),
+        callbackURL: `${window.location.origin}${appRouteUrl(from)}`,
+      })
+      if (sendError) throw sendError
+      setLinkSent(true)
+    } catch {
+      setError('Der Anmeldelink konnte nicht gesendet werden. Prüfe deine E-Mail-Adresse oder wende dich an den Admin.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -61,35 +84,46 @@ export default function LoginPage() {
             Anmelden
           </h2>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              label="E-Mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@firma.de"
-              required
-              autoFocus
-            />
-            <Input
-              label="Passwort"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+          {runtimeConfig.emailLinkEnabled && (
+            <div className="mb-5 flex gap-2 rounded-xl bg-gray-100 p-1 dark:bg-slate-800" role="group" aria-label="Anmeldemethode">
+              <button type="button" onClick={() => { setMethod('email-link'); setError('') }}
+                aria-pressed={method === 'email-link'}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium ${method === 'email-link' ? 'bg-white text-emerald-800 shadow-sm dark:bg-slate-700 dark:text-emerald-300' : 'text-gray-600 dark:text-slate-300'}`}>
+                E-Mail-Link
+              </button>
+              <button type="button" onClick={() => { setMethod('password'); setError('') }}
+                aria-pressed={method === 'password'}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium ${method === 'password' ? 'bg-white text-emerald-800 shadow-sm dark:bg-slate-700 dark:text-emerald-300' : 'text-gray-600 dark:text-slate-300'}`}>
+                Passwort
+              </button>
+            </div>
+          )}
 
-            {error && (
-              <p className="text-xs text-red-500 bg-red-50/80 dark:bg-red-950/40 px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50">
-                {error}
+          {method === 'email-link' ? (
+            <form onSubmit={handleEmailLink} className="flex flex-col gap-4">
+              <p className="text-xs text-gray-600 dark:text-slate-300">
+                Gib die freigeschaltete E-Mail-Adresse ein. Du erhältst einen zeitlich begrenzten Anmeldelink.
               </p>
-            )}
-
-            <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">
-              Anmelden
-            </Button>
-          </form>
+              <Input label="E-Mail" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setLinkSent(false) }}
+                placeholder="name@firma.de" required autoFocus />
+              {linkSent && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                Falls das Konto freigeschaltet ist, findest du den Anmeldelink gleich in deinem Postfach.
+              </p>}
+              {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+              <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">
+                {linkSent ? 'Link erneut senden' : 'Anmeldelink senden'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <Input label="E-Mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@firma.de" required autoFocus />
+              <Input label="Passwort" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••" required />
+              {error && <p role="alert" className="text-xs text-red-500 bg-red-50/80 dark:bg-red-950/40 px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50">{error}</p>}
+              <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">Anmelden</Button>
+            </form>
+          )}
         </div>
 
         {runtimeConfig.registrationEnabled ? (

@@ -1,6 +1,7 @@
 export const runtimeConfig = {
   appEnvironment: import.meta.env.VITE_APP_ENV ?? 'local',
   registrationEnabled: import.meta.env.VITE_REGISTRATION_ENABLED === 'true',
+  emailLinkEnabled: import.meta.env.VITE_EMAIL_LINK_ENABLED === 'true',
   legalOperatorName: (import.meta.env.VITE_LEGAL_OPERATOR_NAME ?? '').trim(),
   legalContactEmail: (import.meta.env.VITE_LEGAL_CONTACT_EMAIL ?? '').trim(),
 }
