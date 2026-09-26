@@ -115,6 +115,26 @@ npm run build
 
 ## Geschlossene Beta
 
+Angemeldete Personen ohne Schichtzuordnung wählen im Dashboard eine Wunschgruppe. Die Anfrage
+kann bis zur Prüfung geändert werden. Im Adminbereich wird die Wunschgruppe angezeigt; der Admin
+kann sie bestätigen oder eine andere Gruppe zuweisen. Erst nach Freigabe wird die persönliche
+Schichtansicht aktiv. Der Kalender zeigt vor der Zuordnung bereits den Rhythmus aller vier Gruppen.
+
+Die Datenbankänderungen dafür liegen in `neon/migrations/20260923235200_phase_7_shift_group_joining.sql`
+und `neon/migrations/20260923235300_phase_7_review_security.sql`.
+Öffentliche Registrierung bleibt deaktiviert. Neue Neon-Auth-Konten müssen für die Beta separat
+bereitgestellt werden. Im Adminbereich lässt sich anschließend ein App-Link per E-Mail oder
+WhatsApp teilen; der Link selbst ist kein Zugangstoken.
+
+Die E-Mail-Link-Anmeldung ist im aktuellen Pages-Build aktiviert. Der Magic-Link-Plugin ist auf
+dem Neon-`main`-Branch mit `disable_sign_up=true` und 15 Minuten Gültigkeit aktiviert; Gmail-SMTP,
+Testmail und Anmeldung mit einem bestehenden Konto wurden geprüft. Zuvor angelegte Konten können
+einen Anmeldelink per E-Mail anfordern. Das
+manuelle Teilen des App-Links per WhatsApp ersetzt den Mailversand für die Anmeldung nicht.
+Der Gruppenbeitritt wurde auf einem isolierten Neon-Branch gegen Schema und fehlende Auth-Sitzung
+geprüft. Ein vollständiger Test mit einer echten eingeladenen Mitarbeiter-Sitzung steht vor dem
+Produktiv-Rollout noch aus.
+
 Vor einem Hosting werden `.env.beta.example` in eine private Beta-Konfiguration übernommen und
 die Freigabesperren geprüft:
 
@@ -127,3 +147,6 @@ Die vollständige manuelle Prüfung steht in
 kompakte Eventzähler; Umfragen und Vorschläge werden erst beim Aufklappen eines Events abgerufen.
 Das Beta-Monitoring speichert keine Freitexte oder Stacktraces und arbeitet ohne Polling, Realtime,
 Analytics oder Web-Push.
+
+Der Ablauf für manuell geteilte Einladungen steht in
+[`docs/INVITATION_SETUP.md`](docs/INVITATION_SETUP.md).

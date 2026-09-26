@@ -223,6 +223,7 @@ export type Database = {
           id: string
           organization_id: string
           requested_at: string
+          requested_shift_group_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           reviewed_shift_group_id: string | null
@@ -233,6 +234,7 @@ export type Database = {
           id?: string
           organization_id: string
           requested_at?: string
+          requested_shift_group_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_shift_group_id?: string | null
@@ -243,6 +245,7 @@ export type Database = {
           id?: string
           organization_id?: string
           requested_at?: string
+          requested_shift_group_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_shift_group_id?: string | null
@@ -250,6 +253,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_access_requests_requested_shift_group_fk"
+            columns: ["organization_id", "requested_shift_group_id"]
+            isOneToOne: false
+            referencedRelation: "shift_groups"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "organization_access_requests_organization_id_fkey"
             columns: ["organization_id"]
@@ -713,6 +723,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      list_joinable_shift_groups: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          anchor_date: string
+          pattern: string
+          color: string
+          sort_order: number
+        }[]
+      }
       cancel_shift_change_request: {
         Args: { p_request_id: string }
         Returns: undefined
@@ -803,6 +824,10 @@ export type Database = {
       }
       request_organization_access: {
         Args: { p_organization_slug: string }
+        Returns: string
+      }
+      request_shift_group_join: {
+        Args: { p_shift_group_id: string }
         Returns: string
       }
       respond_to_shift_swap: {

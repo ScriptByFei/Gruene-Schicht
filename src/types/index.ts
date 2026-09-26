@@ -68,12 +68,18 @@ export interface OrganizationAccessRequest {
   id: string
   organization_id: string
   user_id: string
+  requested_shift_group_id: string | null
   status: AccessRequestStatus
   requested_at: string
   reviewed_at: string | null
   reviewed_by: string | null
   reviewed_shift_group_id: string | null
 }
+
+export type JoinableShiftGroup = Pick<
+  ShiftGroup,
+  'id' | 'name' | 'anchor_date' | 'pattern' | 'color' | 'sort_order'
+>
 
 export interface OrganizationAccessRequestWithProfile extends OrganizationAccessRequest {
   display_name: string

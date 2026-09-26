@@ -12,15 +12,16 @@ import {
 } from '../lib/shifts'
 import { getScheduledEventsForRange } from '../services/events'
 import { getShiftGroups } from '../services/shiftGroups'
+import { getJoinableShiftGroups } from '../services/accessRequests'
 import { getShiftOverrides } from '../services/shiftRequests'
 import { formatEventSchedule, getDateKeyInTimeZone, getLocalDateKey } from '../lib/dateTime'
-import type { Event, ShiftGroup, ShiftGroupColor, ShiftOverride } from '../types'
+import type { Event, JoinableShiftGroup, ShiftGroupColor, ShiftOverride } from '../types'
 import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
 
 interface CalendarCache {
   events: Event[]
   shiftOverrides: ShiftOverride[]
-  groups?: ShiftGroup[]
+  groups?: JoinableShiftGroup[]
 }
 
 const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const
@@ -47,7 +48,7 @@ const groupDotClass: Record<ShiftGroupColor, string> = {
 }
 
 interface GroupShift {
-  group: ShiftGroup
+  group: JoinableShiftGroup
   shift: ShiftInfo | null
   override: ShiftOverride | null
 }
@@ -78,7 +79,7 @@ function getIsoWeek(date: Date): number {
 function buildMonth(
   year: number,
   monthIndex: number,
-  groups: ShiftGroup[],
+  groups: JoinableShiftGroup[],
   ownGroupId: string | undefined,
   overridesByDate: Map<string, ShiftOverride>
 ): CalendarMonth {
@@ -245,8 +246,9 @@ export default function CalendarPage() {
   const userId = user?.id
   const organizationId = organization?.id
   const [today] = useState(() => new Date())
-  const [groups, setGroups] = useState<ShiftGroup[]>(shiftGroup ? [shiftGroup] : [])
-  const [selectedGroupId, setSelectedGroupId] = useState('all')
+  const [groups, setGroups] = useState<JoinableShiftGroup[]>(shiftGroup ? [shiftGroup] : [])
+  const [groupSelection, setGroupSelection] = useState<string | null>(null)
+  const selectedGroupId = groupSelection ?? shiftGroup?.id ?? 'all'
   const [events, setEvents] = useState<Event[]>([])
   const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -286,7 +288,7 @@ export default function CalendarPage() {
     let cancelled = false
 
     const loadCalendarData = async () => {
-      if (!organizationId || !userId) {
+      if (!userId) {
         setEvents([])
         setShiftOverrides([])
         setGroups([])
@@ -296,6 +298,22 @@ export default function CalendarPage() {
 
       setEventsLoading(true)
       setEventsError('')
+      if (!organizationId) {
+        try {
+          const nextGroups = await getJoinableShiftGroups()
+          if (!cancelled) {
+            setEvents([])
+            setShiftOverrides([])
+            setGroups(nextGroups)
+          }
+        } catch {
+          if (!cancelled) setEventsError('Schichtplan konnte nicht geladen werden.')
+        } finally {
+          if (!cancelled) setEventsLoading(false)
+        }
+        return
+      }
+
       try {
         const rangeStart = new Date(year, 0, 1).toISOString()
         const rangeEnd = new Date(year + 1, 0, 1).toISOString()
@@ -402,11 +420,11 @@ export default function CalendarPage() {
   return (
     <div className="mx-auto max-w-md pb-48 sm:pb-6">
 
-      {!shiftGroup && organization && (
+      {!shiftGroup && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-medium text-amber-900">Deine Schichtgruppe ist noch nicht zugeordnet</p>
           <p className="mt-1 text-xs text-amber-700">
-            Du kannst den Plan aller Gruppen ansehen. Ein Admin kann deine persönliche Zuordnung im Admin-Bereich vornehmen.
+            Du kannst den Plan aller Gruppen ansehen. Wähle deine Wunschgruppe im <Link to="/dashboard" className="font-semibold underline">Dashboard</Link>; nach der Freigabe wird deine Gruppe hier vorausgewählt.
           </p>
         </div>
       )}
@@ -432,7 +450,7 @@ export default function CalendarPage() {
           <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Schichtgruppe anzeigen">
             <button
               type="button"
-              onClick={() => setSelectedGroupId('all')}
+              onClick={() => setGroupSelection('all')}
               aria-pressed={selectedGroupId === 'all'}
               className={cn('rounded-full border px-3 py-1.5 text-xs font-medium', selectedGroupId === 'all'
                 ? 'border-emerald-700 bg-emerald-700 text-white'
@@ -444,7 +462,7 @@ export default function CalendarPage() {
               <button
                 key={group.id}
                 type="button"
-                onClick={() => setSelectedGroupId(group.id)}
+                onClick={() => setGroupSelection(group.id)}
                 aria-pressed={selectedGroupId === group.id}
                 className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium', selectedGroupId === group.id
                   ? 'border-emerald-700 bg-emerald-700 text-white'

@@ -1,15 +1,22 @@
 import { client } from '../lib/neon'
 import type {
+  JoinableShiftGroup,
   OrganizationAccessRequest,
   OrganizationAccessRequestWithProfile,
 } from '../types'
+
+export async function getJoinableShiftGroups(): Promise<JoinableShiftGroup[]> {
+  const { data, error } = await client.rpc('list_joinable_shift_groups')
+  if (error) throw error
+  return (data ?? []) as JoinableShiftGroup[]
+}
 
 export async function getMyAccessRequest(
   userId: string
 ): Promise<OrganizationAccessRequest | null> {
   const { data, error } = await client
     .from('organization_access_requests')
-    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
+    .select('id, organization_id, user_id, requested_shift_group_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -17,9 +24,9 @@ export async function getMyAccessRequest(
   return data as OrganizationAccessRequest | null
 }
 
-export async function requestOrganizationAccess(): Promise<void> {
-  const { error } = await client.rpc('request_organization_access', {
-    p_organization_slug: 'gruene-schicht',
+export async function requestShiftGroupJoin(shiftGroupId: string): Promise<void> {
+  const { error } = await client.rpc('request_shift_group_join', {
+    p_shift_group_id: shiftGroupId,
   })
   if (error) throw error
 }
@@ -29,7 +36,7 @@ export async function getPendingAccessRequests(
 ): Promise<OrganizationAccessRequestWithProfile[]> {
   const { data: requests, error: requestError } = await client
     .from('organization_access_requests')
-    .select('id, organization_id, user_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
+    .select('id, organization_id, user_id, requested_shift_group_id, status, requested_at, reviewed_at, reviewed_by, reviewed_shift_group_id')
     .eq('organization_id', organizationId)
     .eq('status', 'pending')
     .order('requested_at')

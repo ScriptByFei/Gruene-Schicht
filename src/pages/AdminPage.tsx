@@ -17,6 +17,7 @@ import AccessRequestManagement from '../components/admin/AccessRequestManagement
 import { formatEventSchedule, fromDateTimeLocalValue, toDateTimeLocalValue } from '../lib/dateTime'
 import { getAdminEventOverview } from '../services/monitoring'
 import BetaHealthCard from '../components/admin/BetaHealthCard'
+import InvitationSharingCard from '../components/admin/InvitationSharingCard'
 
 interface EventWithData {
   event: Event
@@ -281,6 +282,7 @@ export default function AdminPage() {
       {organization && (
         <>
           <BetaHealthCard organizationId={organization.id} />
+          <InvitationSharingCard />
           <AccessRequestManagement
             organizationId={organization.id}
             onMemberChanged={() => setMemberRefreshKey((current) => current + 1)}
