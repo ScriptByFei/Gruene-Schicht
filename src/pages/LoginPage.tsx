@@ -11,13 +11,14 @@ import { emailLinkAuth } from '../lib/emailLinkAuth'
 export default function LoginPage() {
   const location = useLocation()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard'
+  const passwordReset = (location.state as { passwordReset?: boolean } | null)?.passwordReset === true
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [method, setMethod] = useState<'email-link' | 'password'>(
-    runtimeConfig.emailLinkEnabled ? 'email-link' : 'password'
+    passwordReset || !runtimeConfig.emailLinkEnabled ? 'password' : 'email-link'
   )
   const [linkSent, setLinkSent] = useState(false)
 
@@ -83,6 +84,9 @@ export default function LoginPage() {
           <h2 className="text-sm font-semibold text-gray-800 dark:text-emerald-100 mb-5 tracking-wide">
             Anmelden
           </h2>
+          {passwordReset && <p role="status" className="mb-5 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Dein Passwort ist gespeichert. Du kannst dich jetzt damit anmelden.
+          </p>}
 
           {runtimeConfig.emailLinkEnabled && (
             <div className="mb-5 flex gap-2 rounded-xl bg-gray-100 p-1 dark:bg-slate-800" role="group" aria-label="Anmeldemethode">
@@ -117,11 +121,14 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <Input label="E-Mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@firma.de" required autoFocus />
+                placeholder="name@firma.de" autoComplete="email" required autoFocus />
               <Input label="Passwort" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••" required />
+                placeholder="••••••••" autoComplete="current-password" required />
               {error && <p role="alert" className="text-xs text-red-500 bg-red-50/80 dark:bg-red-950/40 px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50">{error}</p>}
               <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">Anmelden</Button>
+              <Link to="/reset-password" className="text-center text-xs font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300">
+                Passwort erstmals festlegen oder vergessen?
+              </Link>
             </form>
           )}
         </div>

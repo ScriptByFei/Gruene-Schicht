@@ -9,6 +9,7 @@ import { PageSpinner } from './components/ui/Spinner'
 import AppErrorBoundary from './components/errors/AppErrorBoundary'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const PasswordResetPage = lazy(() => import('./pages/PasswordResetPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
@@ -31,6 +32,7 @@ export default function App() {
               <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<PasswordResetPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
 
