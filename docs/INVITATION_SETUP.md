@@ -72,6 +72,13 @@ Danach im Adminbereich „Einladung kopieren“, „E-Mail öffnen“ oder „Wh
 Der Empfänger meldet sich mit genau der freigeschalteten E-Mail-Adresse an. Der Admin prüft
 anschließend die angefragte Schichtgruppe.
 
+Wer statt eines E-Mail-Links ein Passwort nutzen möchte, öffnet in der App den Tab
+**Passwort** und wählt **Passwort erstmals festlegen oder vergessen?**. Neon sendet einen
+15 Minuten gültigen Link an die vorab freigeschaltete Adresse. Auf der verlinkten Seite
+legt die Person selbst ein Passwort fest; weder Admin noch App kennen es. Die öffentliche
+Registrierung bleibt dabei deaktiviert. Geht ein Passwort später verloren, funktioniert
+derselbe Link-Weg. Der E-Mail-Link bleibt unabhängig davon als Anmeldealternative erhalten.
+
 Vor der ersten echten Einladung den kompletten Ablauf mit einem eigenen Testpostfach prüfen:
 Konto anlegen → Link teilen → E-Mail-Link empfangen → anmelden → Gruppe anfragen → Admin-Freigabe
 → persönliche Kalenderansicht. Testkonten danach wieder entfernen.
